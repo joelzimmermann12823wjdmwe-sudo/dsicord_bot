@@ -1,35 +1,22 @@
-﻿import json
-from pathlib import Path
+import json
+import os
 
-# NeonBot/bot/Commands/helper.py
-# 3x .parent = NeonBot/
-# / "data"   = NeonBot/data/
-DATA = Path(__file__).resolve().parent.parent.parent / "data"
-DATA.mkdir(exist_ok=True)
+DATA_PATH = "data/"
 
+def save_json(filename, data):
+    if not os.path.exists(DATA_PATH):
+        os.makedirs(DATA_PATH)
+    with open(f"{DATA_PATH}{filename}", "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4)
 
-def load_data(file: str) -> dict:
-    path = DATA / file
-    if not path.exists():
+def load_json(filename):
+    path = f"{DATA_PATH}{filename}"
+    if not os.path.exists(path):
         return {}
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except (json.JSONDecodeError, OSError):
-        return {}
+    with open(path, "r", encoding="utf-8") as f:
+        try: return json.load(f)
+        except: return {}
 
-
-def save_data(file: str, data) -> None:
-    try:
-        with open(DATA / file, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=4, ensure_ascii=False)
-    except OSError as e:
-        print(f"[FEHLER] save_data({file}): {e}")
-
-
-def is_module_enabled(guild_id, module: str) -> bool:
-    return load_data("config.json").get(str(guild_id), {}).get(f"module_{module}", False)
-
-
-def get_log_channel_id(guild_id):
-    return load_data("config.json").get(str(guild_id), {}).get("log_channel")
+async def send_dm(user, embed):
+    try: await user.send(embed=embed)
+    except: pass
