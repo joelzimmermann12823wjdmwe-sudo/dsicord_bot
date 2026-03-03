@@ -7,9 +7,13 @@ class REMOVEROLE(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="removerole", description="Befehl: removerole")
-    async def removerole(self, interaction: discord.Interaction):
-        # Basis-Antwort für den Command
-        await interaction.response.send_message(f"Befehl /removerole wurde erfolgreich geladen!", ephemeral=True)
+    @app_commands.checks.has_permissions(manage_roles=True)
+    async def removerole(self, interaction: discord.Interaction , user: discord.Member, rolle: discord.Role):
+        try:
+            await user.remove_roles(rolle); await interaction.response.send_message(f'❌ Rolle {rolle.name} von {user.name} entfernt.')
+        except Exception as e:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"❌ Fehler: {e}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(REMOVEROLE(bot))

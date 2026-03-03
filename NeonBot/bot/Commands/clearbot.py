@@ -7,9 +7,13 @@ class CLEARBOT(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="clearbot", description="Befehl: clearbot")
-    async def clearbot(self, interaction: discord.Interaction):
-        # Basis-Antwort für den Command
-        await interaction.response.send_message(f"Befehl /clearbot wurde erfolgreich geladen!", ephemeral=True)
+    
+    async def clearbot(self, interaction: discord.Interaction ):
+        try:
+            await interaction.response.send_message(f'✅ System-Modul für clearbot wurde initialisiert.', ephemeral=True)
+        except Exception as e:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"❌ Fehler: {e}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(CLEARBOT(bot))

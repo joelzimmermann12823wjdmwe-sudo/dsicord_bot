@@ -7,9 +7,13 @@ class HELP(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="help", description="Befehl: help")
-    async def help(self, interaction: discord.Interaction):
-        # Basis-Antwort für den Command
-        await interaction.response.send_message(f"Befehl /help wurde erfolgreich geladen!", ephemeral=True)
+    
+    async def help(self, interaction: discord.Interaction ):
+        try:
+            await interaction.response.send_message('💡 Tippe / um alle verfügbaren Befehle und ihre Funktionen zu sehen.', ephemeral=True)
+        except Exception as e:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"❌ Fehler: {e}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(HELP(bot))

@@ -7,9 +7,13 @@ class UNBAN(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="unban", description="Befehl: unban")
-    async def unban(self, interaction: discord.Interaction):
-        # Basis-Antwort für den Command
-        await interaction.response.send_message(f"Befehl /unban wurde erfolgreich geladen!", ephemeral=True)
+    @app_commands.checks.has_permissions(ban_members=True)
+    async def unban(self, interaction: discord.Interaction , user_id: str):
+        try:
+            await interaction.guild.unban(discord.Object(id=int(user_id))); await interaction.response.send_message(f'✅ User mit ID {user_id} entbannt.')
+        except Exception as e:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"❌ Fehler: {e}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(UNBAN(bot))

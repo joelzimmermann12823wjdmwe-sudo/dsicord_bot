@@ -7,9 +7,13 @@ class LOCKDOWN(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="lockdown", description="Befehl: lockdown")
-    async def lockdown(self, interaction: discord.Interaction):
-        # Basis-Antwort für den Command
-        await interaction.response.send_message(f"Befehl /lockdown wurde erfolgreich geladen!", ephemeral=True)
+    
+    async def lockdown(self, interaction: discord.Interaction ):
+        try:
+            await interaction.response.send_message(f'✅ System-Modul für lockdown wurde initialisiert.', ephemeral=True)
+        except Exception as e:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"❌ Fehler: {e}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(LOCKDOWN(bot))

@@ -7,9 +7,13 @@ class SOFTBAN(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="softban", description="Befehl: softban")
-    async def softban(self, interaction: discord.Interaction):
-        # Basis-Antwort für den Command
-        await interaction.response.send_message(f"Befehl /softban wurde erfolgreich geladen!", ephemeral=True)
+    @app_commands.checks.has_permissions(ban_members=True)
+    async def softban(self, interaction: discord.Interaction , user: discord.Member, grund: str = 'Softban'):
+        try:
+            await user.ban(reason=grund, delete_message_days=7); await interaction.guild.unban(user); await interaction.response.send_message(f'💨 Softban: {user.name} gekickt & Nachrichten gelöscht.')
+        except Exception as e:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"❌ Fehler: {e}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(SOFTBAN(bot))

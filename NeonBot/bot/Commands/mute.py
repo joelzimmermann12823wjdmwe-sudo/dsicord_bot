@@ -7,9 +7,13 @@ class MUTE(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="mute", description="Befehl: mute")
-    async def mute(self, interaction: discord.Interaction):
-        # Basis-Antwort für den Command
-        await interaction.response.send_message(f"Befehl /mute wurde erfolgreich geladen!", ephemeral=True)
+    @app_commands.checks.has_permissions(moderate_members=True)
+    async def mute(self, interaction: discord.Interaction , user: discord.Member, minuten: int, grund: str = 'Timeout'):
+        try:
+            import datetime; await user.timeout(datetime.timedelta(minutes=minuten), reason=grund); await interaction.response.send_message(f'🔇 {user.mention} wurde für {minuten}m stummgeschaltet.')
+        except Exception as e:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"❌ Fehler: {e}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(MUTE(bot))

@@ -7,9 +7,13 @@ class VCKICK(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="vckick", description="Befehl: vckick")
-    async def vckick(self, interaction: discord.Interaction):
-        # Basis-Antwort für den Command
-        await interaction.response.send_message(f"Befehl /vckick wurde erfolgreich geladen!", ephemeral=True)
+    @app_commands.checks.has_permissions(move_members=True)
+    async def vckick(self, interaction: discord.Interaction , user: discord.Member):
+        try:
+            if user.voice: await user.move_to(None); await interaction.response.send_message(f'👢 {user.name} aus Voice gekickt.')
+        except Exception as e:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"❌ Fehler: {e}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(VCKICK(bot))

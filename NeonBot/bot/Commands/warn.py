@@ -7,9 +7,13 @@ class WARN(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="warn", description="Befehl: warn")
-    async def warn(self, interaction: discord.Interaction):
-        # Basis-Antwort für den Command
-        await interaction.response.send_message(f"Befehl /warn wurde erfolgreich geladen!", ephemeral=True)
+    @app_commands.checks.has_permissions(moderate_members=True)
+    async def warn(self, interaction: discord.Interaction , user: discord.Member, grund: str):
+        try:
+            await interaction.response.send_message(f'⚠️ **WARNUNG** {user.mention} \n**Grund:** {grund}')
+        except Exception as e:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"❌ Fehler: {e}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(WARN(bot))

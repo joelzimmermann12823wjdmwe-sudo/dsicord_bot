@@ -7,9 +7,13 @@ class UNMUTE(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="unmute", description="Befehl: unmute")
-    async def unmute(self, interaction: discord.Interaction):
-        # Basis-Antwort für den Command
-        await interaction.response.send_message(f"Befehl /unmute wurde erfolgreich geladen!", ephemeral=True)
+    @app_commands.checks.has_permissions(moderate_members=True)
+    async def unmute(self, interaction: discord.Interaction , user: discord.Member):
+        try:
+            await user.timeout(None); await interaction.response.send_message(f'🔊 Stummschaltung für {user.mention} aufgehoben.')
+        except Exception as e:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"❌ Fehler: {e}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(UNMUTE(bot))

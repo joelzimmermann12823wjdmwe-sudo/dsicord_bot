@@ -7,9 +7,13 @@ class RESETNICK(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="resetnick", description="Befehl: resetnick")
-    async def resetnick(self, interaction: discord.Interaction):
-        # Basis-Antwort für den Command
-        await interaction.response.send_message(f"Befehl /resetnick wurde erfolgreich geladen!", ephemeral=True)
+    @app_commands.checks.has_permissions(manage_nicknames=True)
+    async def resetnick(self, interaction: discord.Interaction , user: discord.Member):
+        try:
+            await user.edit(nick=None); await interaction.response.send_message(f'✅ Nickname von {user.name} zurückgesetzt.')
+        except Exception as e:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"❌ Fehler: {e}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(RESETNICK(bot))

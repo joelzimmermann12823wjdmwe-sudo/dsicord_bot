@@ -7,9 +7,13 @@ class HACKBAN(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="hackban", description="Befehl: hackban")
-    async def hackban(self, interaction: discord.Interaction):
-        # Basis-Antwort für den Command
-        await interaction.response.send_message(f"Befehl /hackban wurde erfolgreich geladen!", ephemeral=True)
+    @app_commands.checks.has_permissions(ban_members=True)
+    async def hackban(self, interaction: discord.Interaction , user_id: str, grund: str = 'ID-Ban'):
+        try:
+            await interaction.guild.ban(discord.Object(id=int(user_id)), reason=grund); await interaction.response.send_message(f'💻 ID {user_id} wurde vorab gebannt.')
+        except Exception as e:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"❌ Fehler: {e}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(HACKBAN(bot))

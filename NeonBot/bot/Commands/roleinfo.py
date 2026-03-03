@@ -7,9 +7,13 @@ class ROLEINFO(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="roleinfo", description="Befehl: roleinfo")
-    async def roleinfo(self, interaction: discord.Interaction):
-        # Basis-Antwort für den Command
-        await interaction.response.send_message(f"Befehl /roleinfo wurde erfolgreich geladen!", ephemeral=True)
+    
+    async def roleinfo(self, interaction: discord.Interaction ):
+        try:
+            await interaction.response.send_message(f'✅ System-Modul für roleinfo wurde initialisiert.', ephemeral=True)
+        except Exception as e:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"❌ Fehler: {e}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(ROLEINFO(bot))

@@ -7,9 +7,13 @@ class CLEAR(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="clear", description="Befehl: clear")
-    async def clear(self, interaction: discord.Interaction):
-        # Basis-Antwort für den Command
-        await interaction.response.send_message(f"Befehl /clear wurde erfolgreich geladen!", ephemeral=True)
+    @app_commands.checks.has_permissions(manage_messages=True)
+    async def clear(self, interaction: discord.Interaction , anzahl: int = 10):
+        try:
+            d = await interaction.channel.purge(limit=anzahl); await interaction.response.send_message(f'🧹 {len(d)} Nachrichten gelöscht.', ephemeral=True)
+        except Exception as e:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"❌ Fehler: {e}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(CLEAR(bot))

@@ -7,9 +7,13 @@ class KICK(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="kick", description="Befehl: kick")
-    async def kick(self, interaction: discord.Interaction):
-        # Basis-Antwort für den Command
-        await interaction.response.send_message(f"Befehl /kick wurde erfolgreich geladen!", ephemeral=True)
+    @app_commands.checks.has_permissions(kick_members=True)
+    async def kick(self, interaction: discord.Interaction , user: discord.Member, grund: str = 'Kein Grund'):
+        try:
+            await user.kick(reason=grund); await interaction.response.send_message(f'👢 {user.mention} wurde gekickt.')
+        except Exception as e:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"❌ Fehler: {e}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(KICK(bot))

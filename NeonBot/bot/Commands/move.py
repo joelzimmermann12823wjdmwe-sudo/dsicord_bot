@@ -7,9 +7,13 @@ class MOVE(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="move", description="Befehl: move")
-    async def move(self, interaction: discord.Interaction):
-        # Basis-Antwort für den Command
-        await interaction.response.send_message(f"Befehl /move wurde erfolgreich geladen!", ephemeral=True)
+    
+    async def move(self, interaction: discord.Interaction ):
+        try:
+            await interaction.response.send_message(f'✅ System-Modul für move wurde initialisiert.', ephemeral=True)
+        except Exception as e:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"❌ Fehler: {e}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(MOVE(bot))

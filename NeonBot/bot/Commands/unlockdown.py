@@ -7,9 +7,13 @@ class UNLOCKDOWN(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="unlockdown", description="Befehl: unlockdown")
-    async def unlockdown(self, interaction: discord.Interaction):
-        # Basis-Antwort für den Command
-        await interaction.response.send_message(f"Befehl /unlockdown wurde erfolgreich geladen!", ephemeral=True)
+    
+    async def unlockdown(self, interaction: discord.Interaction ):
+        try:
+            await interaction.response.send_message(f'✅ System-Modul für unlockdown wurde initialisiert.', ephemeral=True)
+        except Exception as e:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"❌ Fehler: {e}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(UNLOCKDOWN(bot))

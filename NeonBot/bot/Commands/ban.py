@@ -7,9 +7,13 @@ class BAN(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="ban", description="Befehl: ban")
-    async def ban(self, interaction: discord.Interaction):
-        # Basis-Antwort für den Command
-        await interaction.response.send_message(f"Befehl /ban wurde erfolgreich geladen!", ephemeral=True)
+    @app_commands.checks.has_permissions(ban_members=True)
+    async def ban(self, interaction: discord.Interaction , user: discord.Member, grund: str = 'Kein Grund'):
+        try:
+            await user.ban(reason=grund); await interaction.response.send_message(f'🔨 {user.mention} wurde permanent verbannt.')
+        except Exception as e:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"❌ Fehler: {e}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(BAN(bot))

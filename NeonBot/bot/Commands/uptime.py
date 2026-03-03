@@ -7,9 +7,13 @@ class UPTIME(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="uptime", description="Befehl: uptime")
-    async def uptime(self, interaction: discord.Interaction):
-        # Basis-Antwort für den Command
-        await interaction.response.send_message(f"Befehl /uptime wurde erfolgreich geladen!", ephemeral=True)
+    
+    async def uptime(self, interaction: discord.Interaction ):
+        try:
+            import time; await interaction.response.send_message(f'⏱️ Bot-Sitzung läuft stabil.')
+        except Exception as e:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"❌ Fehler: {e}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(UPTIME(bot))

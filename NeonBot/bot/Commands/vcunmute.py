@@ -7,9 +7,13 @@ class VCUNMUTE(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="vcunmute", description="Befehl: vcunmute")
-    async def vcunmute(self, interaction: discord.Interaction):
-        # Basis-Antwort für den Command
-        await interaction.response.send_message(f"Befehl /vcunmute wurde erfolgreich geladen!", ephemeral=True)
+    @app_commands.checks.has_permissions(mute_members=True)
+    async def vcunmute(self, interaction: discord.Interaction , user: discord.Member):
+        try:
+            await user.edit(mute=False); await interaction.response.send_message(f'🔊 Stummschaltung von {user.name} aufgehoben.')
+        except Exception as e:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"❌ Fehler: {e}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(VCUNMUTE(bot))

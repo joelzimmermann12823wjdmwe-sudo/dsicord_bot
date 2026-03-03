@@ -7,9 +7,13 @@ class BANNER(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="banner", description="Befehl: banner")
-    async def banner(self, interaction: discord.Interaction):
-        # Basis-Antwort für den Command
-        await interaction.response.send_message(f"Befehl /banner wurde erfolgreich geladen!", ephemeral=True)
+    
+    async def banner(self, interaction: discord.Interaction , user: discord.Member = None):
+        try:
+            u = user or interaction.user; await interaction.response.send_message(u.banner.url if u.banner else 'User hat keinen Banner.')
+        except Exception as e:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"❌ Fehler: {e}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(BANNER(bot))

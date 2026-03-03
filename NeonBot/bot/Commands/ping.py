@@ -7,9 +7,13 @@ class PING(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="ping", description="Befehl: ping")
-    async def ping(self, interaction: discord.Interaction):
-        # Basis-Antwort für den Command
-        await interaction.response.send_message(f"Befehl /ping wurde erfolgreich geladen!", ephemeral=True)
+    
+    async def ping(self, interaction: discord.Interaction ):
+        try:
+            await interaction.response.send_message(f'🏓 Latenz: {round(self.bot.latency * 1000)}ms')
+        except Exception as e:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"❌ Fehler: {e}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(PING(bot))

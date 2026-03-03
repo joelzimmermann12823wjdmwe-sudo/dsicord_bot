@@ -7,9 +7,13 @@ class SETWELCOMECHANNEL(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="setwelcomechannel", description="Befehl: setwelcomechannel")
-    async def setwelcomechannel(self, interaction: discord.Interaction):
-        # Basis-Antwort für den Command
-        await interaction.response.send_message(f"Befehl /setwelcomechannel wurde erfolgreich geladen!", ephemeral=True)
+    
+    async def setwelcomechannel(self, interaction: discord.Interaction ):
+        try:
+            await interaction.response.send_message(f'✅ System-Modul für setwelcomechannel wurde initialisiert.', ephemeral=True)
+        except Exception as e:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"❌ Fehler: {e}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(SETWELCOMECHANNEL(bot))

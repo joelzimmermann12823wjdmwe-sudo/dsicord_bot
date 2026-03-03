@@ -7,9 +7,13 @@ class UNLOCK(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="unlock", description="Befehl: unlock")
-    async def unlock(self, interaction: discord.Interaction):
-        # Basis-Antwort für den Command
-        await interaction.response.send_message(f"Befehl /unlock wurde erfolgreich geladen!", ephemeral=True)
+    @app_commands.checks.has_permissions(manage_channels=True)
+    async def unlock(self, interaction: discord.Interaction ):
+        try:
+            await interaction.channel.set_permissions(interaction.guild.default_role, send_messages=True); await interaction.response.send_message('🔓 Kanal wieder freigegeben.')
+        except Exception as e:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"❌ Fehler: {e}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(UNLOCK(bot))

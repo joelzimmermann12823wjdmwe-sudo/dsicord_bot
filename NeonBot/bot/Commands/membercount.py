@@ -7,9 +7,13 @@ class MEMBERCOUNT(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="membercount", description="Befehl: membercount")
-    async def membercount(self, interaction: discord.Interaction):
-        # Basis-Antwort für den Command
-        await interaction.response.send_message(f"Befehl /membercount wurde erfolgreich geladen!", ephemeral=True)
+    
+    async def membercount(self, interaction: discord.Interaction ):
+        try:
+            await interaction.response.send_message(f'👥 Aktuelle Mitgliederzahl: **{interaction.guild.member_count}**')
+        except Exception as e:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"❌ Fehler: {e}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(MEMBERCOUNT(bot))

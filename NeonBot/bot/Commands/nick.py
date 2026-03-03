@@ -7,9 +7,13 @@ class NICK(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="nick", description="Befehl: nick")
-    async def nick(self, interaction: discord.Interaction):
-        # Basis-Antwort für den Command
-        await interaction.response.send_message(f"Befehl /nick wurde erfolgreich geladen!", ephemeral=True)
+    @app_commands.checks.has_permissions(manage_nicknames=True)
+    async def nick(self, interaction: discord.Interaction , user: discord.Member, name: str):
+        try:
+            await user.edit(nick=name); await interaction.response.send_message(f'📝 Nickname von {user.name} zu {name} geändert.')
+        except Exception as e:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"❌ Fehler: {e}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(NICK(bot))
