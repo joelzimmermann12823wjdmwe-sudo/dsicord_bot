@@ -4,14 +4,16 @@ from requests_oauthlib import OAuth2Session
 from dotenv import load_dotenv
 import functools
 
-# Lade die .env Datei
 load_dotenv()
 
-# --- KONFIGURATION (Aus .env geladen) ---
 CLIENT_ID = os.getenv('CLIENT_ID')
 CLIENT_SECRET = os.getenv('CLIENT_SECRET')
 REDIRECT_URI = os.getenv('REDIRECT_URI')
 
+# Sicherheits-Check: Wenn eine Variable fehlt, stoppe sofort mit Fehlermeldung
+if not CLIENT_ID or not CLIENT_SECRET or not REDIRECT_URI:
+    print("❌ FEHLER: CLIENT_ID, CLIENT_SECRET oder REDIRECT_URI fehlt in der .env!")
+    
 API_BASE_URL = 'https://discord.com/api'
 AUTHORIZATION_BASE_URL = API_BASE_URL + '/oauth2/authorize'
 TOKEN_URL = API_BASE_URL + '/oauth2/token'
