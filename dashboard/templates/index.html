@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Neon Bot — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* --- STYLES (Neon-Design) --- */
+:root {
+  --bg: #02060f; --bg2: #040c1a; --bg3: #06101f; --panel: #030a18;
+  --blue: #0057ff; --cyan: #00b4ff; --glow: #00d4ff; --accent: #0080ff;
+  --green: #00e676; --red: #ff3b4e; --muted: #6272a4; --text: #e2e8f0;
+}
+body {
+  background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif;
+  overflow-x: hidden; margin: 0;
+}
+.sidebar {
+  width: 260px; height: 100vh; background: var(--nav); border-right: 1px solid rgba(255,255,255,0.05);
+  position: fixed; display: flex; flex-direction: column; padding: 20px;
+}
+.main-content { margin-left: 260px; padding: 40px; min-height: 100vh; }
+.card { background: var(--panel); border: 1px solid rgba(255,255,255,0.03); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+.btn { 
+  background: var(--blue); border: none; color: white; padding: 10px 20px; 
+  border-radius: 6px; cursor: pointer; transition: 0.3s;
+}
+.btn:hover { box-shadow: 0 0 15px var(--blue); }
+.hidden { display: none; }
+.view { display: block !important; }
+</style>
+</head>
+<body>
+
+<div id="vLoad" class="view" style="display:flex; justify-content:center; align-items:center; height:100vh;">
+  <h2>Lädt NeonBot Dashboard...</h2>
+</div>
+
+<div id="vApp" class="hidden">
+  <div class="sidebar">
+    <h2 style="color:var(--glow); margin-bottom:30px;">NEON BOT</h2>
+    <nav>
+      <div onclick="showView('vHome')" style="cursor:pointer; margin-bottom:15px;">🏠 Übersicht</div>
+      <div onclick="showView('vAutoMod')" style="cursor:pointer; margin-bottom:15px;">🛡️ AutoMod</div>
+      <div onclick="showView('vSetup')" style="cursor:pointer; margin-bottom:15px;">⚙️ Setup</div>
+    </nav>
+  </div>
+
+  <div class="main-content">
+    <div id="vHome" class="view">
+      <h1>Willkommen, <span id="userName">User</span>!</h1>
+      <div class="card">
+        <h3>Server-Status</h3>
+        <p>Wähle einen Server aus der Liste aus, um ihn zu konfigurieren.</p>
+        <div id="guildList"></div>
+      </div>
+    </div>
+
+    <div id="vAutoMod" class="hidden">
+      <h1>🛡️ AutoMod Einstellungen</h1>
+      <div class="card">
+        <label>Schimpfwort-Filter</label>
+        <input type="checkbox" id="filter-badwords">
+        <br><br>
+        <button class="btn" onclick="saveConfig('automod')">Speichern</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* --- DASHBOARD LOGIK --- */
+let S = { guildId: null, guildInfo: null };
+
+function $(id) { return document.getElementById(id); }
+function showView(id) {
+  ['vHome', 'vAutoMod', 'vSetup'].forEach(v => $(v).classList.add('hidden'));
+  $(id).classList.remove('hidden');
+}
+
+async function apiFetch(url, method = 'GET', body = null) {
+  const opt = { method, headers: {'Content-Type': 'application/json'} };
+  if (body) opt.body = JSON.stringify(body);
+  const r = await fetch(url, opt);
+  return r.json();
+}
+
+async function initApp() {
+  const me = await apiFetch('/api/me');
+  if (me) {
+    $('userName').innerText = me.username;
+    $('vLoad').classList.remove('view');
+    $('vLoad').classList.add('hidden');
+    $('vApp').classList.remove('hidden');
+    loadGuilds();
+  }
+}
+
+async function loadGuilds() {
+  const guilds = await apiFetch('/api/guilds');
+  const list = $('guildList');
+  list.innerHTML = guilds.map(g => `
+    <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
+      <span>${g.name}</span>
+      <button class="btn" onclick="selectGuild('${g.id}')">Verwalten</button>
+    </div>
+  `).join('');
+}
+
+function selectGuild(id) {
+  S.guildId = id;
+  alert("Server " + id + " ausgewählt!");
+}
+
+async function saveConfig(module) {
+  const cfg = { filter_badwords: $('filter-badwords').checked };
+  await apiFetch(`/api/guild/${S.guildId}/config`, 'POST', { module, config: cfg });
+  alert("Konfiguration gespeichert!");
+}
+
+window.onload = initApp;
+</script>
+</body>
+</html>
