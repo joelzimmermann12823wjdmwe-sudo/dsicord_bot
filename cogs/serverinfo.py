@@ -1,0 +1,15 @@
+import discord
+from discord import app_commands
+from discord.ext import commands
+import datetime
+
+class serverinfo(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    @app_commands.command(name="serverinfo", description="Server-Statistiken")
+    @app_commands.checks.has_permissions(send_messages=True)
+    async def serverinfo(self, itx: discord.Interaction): await itx.response.send_message(f'🏢 Server: {itx.guild.name} | Member: {itx.guild.member_count}')
+
+async def setup(bot):
+    await bot.add_cog(serverinfo(bot))
