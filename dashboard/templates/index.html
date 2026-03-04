@@ -525,7 +525,6 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.65; }
 </head>
 <body>
 
-<!-- BG -->
 <div id="bg">
   <div class="bg-grid"></div>
   <div class="bg-orb orb-a"></div>
@@ -534,21 +533,17 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.65; }
   <div class="bg-scan"></div>
 </div>
 
-<!-- CURSOR -->
 <div id="cur"></div>
 <div id="cur-r"></div>
 
-<!-- TOAST -->
 <div id="toast"></div>
 
-<!-- ══ VIEW: LOADER ══ -->
 <div id="vLoad" class="view active">
   <div class="load-logo">⚡ Neon Bot</div>
   <div class="load-track"><div class="load-fill"></div></div>
   <div class="load-txt">Dashboard wird geladen…</div>
 </div>
 
-<!-- ══ VIEW: LOGIN ══ -->
 <div id="vLogin" class="view">
   <div class="login-badge"><span class="badge-dot"></span>Dashboard v2</div>
   <div class="login-logo">⚡ Neon Bot</div>
@@ -560,7 +555,6 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.65; }
   <p class="login-hint">Nur Server mit Administrator-Rechten werden angezeigt.</p>
 </div>
 
-<!-- ══ VIEW: SERVERS ══ -->
 <div id="vServers" class="view">
   <header class="srv-bar">
     <div class="srv-bar-logo">⚡ Neon Bot Dashboard</div>
@@ -580,10 +574,8 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.65; }
   </div>
 </div>
 
-<!-- ══ VIEW: DASHBOARD ══ -->
 <div id="vDash" class="view">
 
-  <!-- TOPBAR -->
   <header class="dash-top">
     <div class="top-left">
       <div class="btn-back" onclick="showView('vServers')" title="Zurück zur Serverauswahl">←</div>
@@ -601,7 +593,6 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.65; }
 
   <div class="dash-body">
 
-    <!-- SIDEBAR -->
     <nav class="sidebar">
       <div class="s-sec">Schutz</div>
       <div class="s-item" data-p="automod"   onclick="switchMod(this)"><span class="s-ico">🛡️</span>AutoMod</div>
@@ -617,10 +608,8 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.65; }
       <div class="s-item" data-p="staff"     onclick="switchMod(this)"><span class="s-ico">👮</span>Staff Liste</div>
     </nav>
 
-    <!-- MAIN -->
     <main class="dash-main">
 
-      <!-- EMPTY -->
       <div id="p-empty" class="mpanel on">
         <div class="p-empty">
           <div class="big">⚙️</div>
@@ -628,7 +617,6 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.65; }
         </div>
       </div>
 
-      <!-- ─── AUTOMOD ─── -->
       <div id="p-automod" class="mpanel">
         <div class="p-head">
           <div class="p-ico">🛡️</div>
@@ -671,7 +659,6 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.65; }
         <div class="save-bar"><button class="btn-save" onclick="saveMod('automod')">💾 Änderungen speichern</button></div>
       </div>
 
-      <!-- ─── ANTI-NUKE ─── -->
       <div id="p-antinuke" class="mpanel">
         <div class="p-head">
           <div class="p-ico">🚫</div>
@@ -705,7 +692,6 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.65; }
         <div class="save-bar"><button class="btn-save" onclick="saveMod('antinuke')">💾 Änderungen speichern</button></div>
       </div>
 
-      <!-- ─── MODERATION ─── -->
       <div id="p-moderation" class="mpanel">
         <div class="p-head">
           <div class="p-ico">🔨</div>
@@ -731,7 +717,6 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.65; }
         <div class="save-bar"><button class="btn-save" onclick="saveMod('moderation')">💾 Änderungen speichern</button></div>
       </div>
 
-      <!-- ─── LOGGING ─── -->
       <div id="p-logging" class="mpanel">
         <div class="p-head">
           <div class="p-ico">📋</div>
@@ -761,7 +746,6 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.65; }
         <div class="save-bar"><button class="btn-save" onclick="saveMod('logging')">💾 Änderungen speichern</button></div>
       </div>
 
-      <!-- ─── WELCOME ─── -->
       <div id="p-welcome" class="mpanel">
         <div class="p-head">
           <div class="p-ico">👋</div>
@@ -787,7 +771,6 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.65; }
         <div class="save-bar"><button class="btn-save" onclick="saveMod('welcome')">💾 Änderungen speichern</button></div>
       </div>
 
-      <!-- ─── TICKETS ─── -->
       <div id="p-tickets" class="mpanel">
         <div class="p-head">
           <div class="p-ico">🎫</div>
@@ -813,7 +796,6 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.65; }
         <div class="save-bar"><button class="btn-save" onclick="saveMod('tickets')">💾 Änderungen speichern</button></div>
       </div>
 
-      <!-- ─── AUTO-ROLLE ─── -->
       <div id="p-autorole" class="mpanel">
         <div class="p-head">
           <div class="p-ico">🎭</div>
@@ -832,7 +814,6 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.65; }
         <div class="save-bar"><button class="btn-save" onclick="saveMod('autorole')">💾 Änderungen speichern</button></div>
       </div>
 
-      <!-- ─── STAFF ─── -->
       <div id="p-staff" class="mpanel">
         <div class="p-head">
           <div class="p-ico">👮</div>
@@ -856,9 +837,6 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.65; }
   </div>
 </div>
 
-<!-- ════════════════════════════════════════════
-     JAVASCRIPT
-════════════════════════════════════════════ -->
 <script>
 'use strict';
 
@@ -886,6 +864,7 @@ async function apiFetch(url, method = 'GET', body = null) {
   const opt = { method, headers: {'Content-Type': 'application/json'} };
   if (body) opt.body = JSON.stringify(body);
   const r = await fetch(url, opt);
+  if (r.status === 401) { window.location.href = '/login'; return null; }
   if (!r.ok) throw new Error('API Fehler');
   return r.json();
 }
@@ -935,13 +914,16 @@ function fillSelect(id, items, labFn, valFn, cur) {
 
 /* ── LOGIN & SERVERS ────────────────────────────────────── */
 function doLogin() {
-  // Leitet zum Discord OAuth2 Link weiter
-  window.location.href = `https://discord.com/oauth2/authorize?client_id=1470766309192241224&permissions=8&response_type=code&redirect_uri=${encodeURIComponent(window.location.origin)}&scope=identify+bot+guilds`;
+  window.location.href = '/login'; // Leitet ans Python-Backend weiter
+}
+
+function doLogout() {
+  window.location.href = '/logout';
 }
 
 async function loadServers() {
   const grid = $('srvGrid');
-  grid.innerHTML = '<div class="srv-spinner">Lade Server...</div>';
+  grid.innerHTML = '<div class="srv-spinner"><div class="spin"></div>Lade Server...</div>';
   try {
     const guilds = await apiFetch('/api/guilds');
     grid.innerHTML = '';
@@ -954,8 +936,15 @@ async function loadServers() {
         <div class="srv-name">${esc(g.name)}</div>
         <span class="${g.bot_present ? 'badge-on' : 'badge-off'}">${g.bot_present ? '✅ Aktiv' : '⚠️ Bot fehlt'}</span>
       `;
-      card.onclick = () => openDash(g);
+      card.onclick = () => { if(g.bot_present) openDash(g); else toast('Lade den Bot zuerst ein!', 'err'); };
+      card.style.opacity = '0';
+      card.style.transform = 'translateY(16px)';
       grid.appendChild(card);
+      setTimeout(() => {
+        card.style.transition = 'opacity .4s ease, transform .4s ease';
+        card.style.opacity = '1';
+        card.style.transform = 'translateY(0)';
+      }, i * 60);
     });
   } catch(e) { toast('Fehler beim Laden der Server', 'err'); }
 }
@@ -964,7 +953,7 @@ async function loadServers() {
 async function openDash(guild) {
   S.guildId = guild.id;
   $('vLoad').style.opacity = '1';
-  $('vLoad').style.display = 'flex';
+  $('vLoad').style.pointerEvents = 'all';
   
   try {
     const [info, config] = await Promise.all([
@@ -972,7 +961,7 @@ async function openDash(guild) {
       apiFetch(`/api/guild/${guild.id}/config`)
     ]);
 
-    S.guildInfo = info;
+    S.guildInfo = info || { channels:[], roles:[], categories:[] };
     S.config = config || {};
 
     $('dashSrvName').textContent = guild.name;
@@ -980,13 +969,16 @@ async function openDash(guild) {
     $('dashSrvIcon').innerHTML = guild.icon ? `<img src="https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.webp">` : initial;
     
     populateDropdowns();
+    document.querySelectorAll('.mpanel').forEach(p => p.classList.remove('on'));
+    $('p-empty').classList.add('on');
+    document.querySelectorAll('.s-item').forEach(s => s.classList.remove('on'));
     showView('vDash');
     initAutoSave();
   } catch(e) { 
     toast('Fehler beim Öffnen des Dashboards', 'err'); 
   } finally { 
     $('vLoad').style.opacity = '0';
-    setTimeout(() => $('vLoad').style.display = 'none', 500);
+    $('vLoad').style.pointerEvents = 'none';
   }
 }
 
@@ -1028,8 +1020,34 @@ function fillPanel(mod) {
     sv('am-md', am.mute_duration || 10);
     S.extraWords = [...(am.extra_badwords || [])];
     renderTags();
+  } else if (mod === 'antinuke') {
+    const an = cfg.anti_nuke || {};
+    sc('nk-on', !!an.enabled);
+    sv('nk-cd', an.max_channel_del || 3);
+    sv('nk-rd', an.max_role_del    || 3);
+    sv('nk-bd', an.max_bans        || 5);
+    sv('nk-act', an.action || 'ban');
+  } else if (mod === 'logging') {
+    sc('log-on', !!cfg.module_logging);
+    sv('log-ch', cfg.log_channel || '');
+  } else if (mod === 'welcome') {
+    sc('wlc-on', !!cfg.module_welcome);
+    sv('wlc-ch', cfg.welcome_channel || '');
+    sv('wlc-msg', cfg.welcome_msg || '');
+  } else if (mod === 'tickets') {
+    const tk = cfg.tickets || {};
+    sc('tk-on', tk.enabled !== false);
+    sv('tk-r', tk.support_role || '');
+    sv('tk-cat', tk.category || '');
+    sv('tk-msg', tk.welcome_msg || '');
+  } else if (mod === 'moderation') {
+    sv('mod-r', cfg.mod_role || '');
+  } else if (mod === 'autorole') {
+    sv('ar-r', cfg.auto_role || '');
+  } else if (mod === 'staff') {
+    S.staffRoles = [...(cfg.staff_roles || [])];
+    renderStaff();
   }
-  // Weitere Module (Welcome, Tickets etc.) hier analog befüllen...
 }
 
 /* ── AUTO-SAVE FUNKTION ─────────────────────────────────── */
@@ -1051,22 +1069,46 @@ async function saveMod(mod, isAuto = false) {
   }
 
   // Daten für das jeweilige Modul sammeln
+  let payload = {};
   if (mod === 'automod') {
-    S.config.automod = {
-      filter_badwords: gc('am-bw'),
-      filter_invites: gc('am-inv'),
-      filter_masspings: gc('am-ping'),
-      filter_caps: gc('am-caps'),
-      warn_after: +gv('am-wv'),
-      mute_after: +gv('am-mv'),
-      extra_badwords: [...S.extraWords]
+    payload = {
+      filter_badwords: gc('am-bw'), filter_invites: gc('am-inv'),
+      filter_masspings: gc('am-ping'), filter_caps: gc('am-caps'),
+      warn_after: +gv('am-wv'), mute_after: +gv('am-mv'),
+      kick_after: +gv('am-kv'), ban_after: +gv('am-bv'),
+      mute_duration: +gv('am-md'), extra_badwords: [...S.extraWords]
     };
+    S.config.automod = payload;
+  } else if (mod === 'antinuke') {
+    payload = { enabled: gc('nk-on'), max_channel_del: +gv('nk-cd'), max_role_del: +gv('nk-rd'), max_bans: +gv('nk-bd'), action: gv('nk-act') };
+    S.config.anti_nuke = payload;
+  } else if (mod === 'logging') {
+    S.config.module_logging = gc('log-on');
+    S.config.log_channel = gv('log-ch') || null;
+    payload = { enabled: S.config.module_logging, channel: S.config.log_channel };
+  } else if (mod === 'welcome') {
+    S.config.module_welcome = gc('wlc-on');
+    S.config.welcome_channel = gv('wlc-ch') || null;
+    S.config.welcome_msg = gv('wlc-msg');
+    payload = { enabled: S.config.module_welcome, channel: S.config.welcome_channel, message: S.config.welcome_msg };
+  } else if (mod === 'tickets') {
+    payload = { enabled: gc('tk-on'), support_role: gv('tk-r')||null, category: gv('tk-cat')||null, welcome_msg: gv('tk-msg') };
+    S.config.tickets = payload;
+  } else if (mod === 'moderation') {
+    S.config.mod_role = gv('mod-r') || null;
+    payload = { mod_role: S.config.mod_role };
+  } else if (mod === 'autorole') {
+    S.config.auto_role = gv('ar-r') || null;
+    payload = { role: S.config.auto_role };
+  } else if (mod === 'staff') {
+    S.config.staff_roles = [...S.staffRoles];
+    payload = { roles: S.staffRoles };
   }
 
   try {
     await apiFetch(`/api/guild/${S.guildId}/config`, 'POST', {
       module: mod,
-      config: S.config[mod]
+      config: payload
     });
     if(!isAuto) toast('Gespeichert!');
   } catch(e) {
@@ -1092,11 +1134,52 @@ function renderTags() {
     wrap.insertBefore(chip, inp);
   });
 }
-
+$('amTagIn').addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    const v = e.target.value.trim().toLowerCase();
+    if (v && !S.extraWords.includes(v)) { S.extraWords.push(v); renderTags(); saveMod('automod', true); }
+    e.target.value = '';
+  }
+});
 function removeWord(w) { 
   S.extraWords = S.extraWords.filter(x => x !== w); 
   renderTags(); 
   saveMod('automod', true); 
+}
+
+function renderStaff() {
+  const list = $('staffRoleList');
+  if (!S.staffRoles.length) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:.84rem;padding:12px 0">Noch keine Rollen hinzugefügt.</div>';
+    return;
+  }
+  list.innerHTML = '';
+  S.staffRoles.forEach(rid => {
+    const role  = (S.guildInfo.roles||[]).find(r => r.id === rid);
+    const color = role?.color ? '#' + role.color.toString(16).padStart(6,'0') : 'var(--muted)';
+    const name  = role?.name || rid;
+    const item  = document.createElement('div');
+    item.className = 'ritem';
+    item.innerHTML = `
+      <div class="rdot" style="background:${color};box-shadow:0 0 5px ${color}66"></div>
+      <span class="rname">${esc(name)}</span>
+      <button class="rrm" onclick="removeStaff('${rid}')">×</button>
+    `;
+    list.appendChild(item);
+  });
+}
+function addStaffRole() {
+  const v = gv('staff-sel');
+  if (!v || S.staffRoles.includes(v)) return;
+  S.staffRoles.push(v);
+  renderStaff();
+  saveMod('staff', true);
+}
+function removeStaff(id) { 
+  S.staffRoles = S.staffRoles.filter(x => x !== id); 
+  renderStaff(); 
+  saveMod('staff', true);
 }
 
 /* ── INIT ────────────────────────────────────────────────── */
