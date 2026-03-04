@@ -1,7 +1,26 @@
-﻿import json, os
+import json
+import os
 from pathlib import Path
-P = Path(__file__).parent.parent.parent / "data" / "guild_configs.json"
-def is_enabled(gid, mod):
-    if not P.exists(): return True
-    with open(P, encoding="utf-8") as f:
-        return json.load(f).get(str(gid), {}).get(mod, {}).get("enabled", True)
+
+CONFIG_PATH = Path(__file__).parent.parent.parent / "data" / "guild_configs.json"
+
+def load_config(guild_id):
+    if not CONFIG_PATH.exists():
+        return {}
+    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+        data = json.load(f)
+        return data.get(str(guild_id), {})
+
+def save_config(guild_id, module, settings):
+    data = {}
+    if CONFIG_PATH.exists():
+        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    
+    if str(guild_id) not in data:
+        data[str(guild_id)] = {}
+    
+    data[str(guild_id)][module] = settings
+    
+    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4)
