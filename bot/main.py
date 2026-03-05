@@ -6,14 +6,15 @@ from dotenv import load_dotenv
 from flask import Flask
 from threading import Thread
 import logging
+import sys
 
-# Logging für Render-Dashboard
+# Logging Setup
 logging.basicConfig(level=logging.INFO)
 
-# --- RENDER PORT BINDING ---
+# --- RENDER PORT BINDING (Dummy Server) ---
 app = Flask(__name__)
 @app.route('/')
-def home(): return "Bot is Online!"
+def home(): return "NeonBot is Live!"
 
 def run_flask():
     port = int(os.environ.get('PORT', 8080))
@@ -25,39 +26,48 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 
 class NeonBot(commands.Bot):
     def __init__(self):
-        # WICHTIG: Intents müssen im Developer Portal aktiv sein!
+        # WICHTIG: Stelle sicher, dass Presence/Members/Message Intents im Portal AN sind!
         intents = discord.Intents.all()
         super().__init__(command_prefix="!", intents=intents, help_command=None)
 
     async def setup_hook(self):
-        # 1. Cogs laden
-        # Wir suchen den Ordner relativ zum Speicherort dieser Datei
-        base_path = os.path.dirname(os.path.abspath(__file__))
-        cogs_path = os.path.join(base_path, "cogs")
+        # Dynamische Pfadsuche für Cogs
+        possible_paths = [
+            os.path.join(os.getcwd(), "cogs"),
+            os.path.join(os.getcwd(), "bot", "cogs"),
+            os.path.join(os.path.dirname(__file__), "cogs")
+        ]
         
-        if os.path.exists(cogs_path):
-            for filename in os.listdir(cogs_path):
+        cogs_dir = None
+        for path in possible_paths:
+            if os.path.exists(path):
+                cogs_dir = path
+                break
+        
+        if cogs_dir:
+            logging.info(f"📂 Lade Cogs aus: {cogs_dir}")
+            for filename in os.listdir(cogs_dir):
                 if filename.endswith(".py"):
+                    cog_name = f"cogs.{filename[:-3]}"
+                    # Falls der Ordnerpfad tiefer liegt, passen wir den Import an
                     try:
-                        await self.load_extension(f"cogs.{filename[:-3]}")
+                        await self.load_extension(cog_name)
                         logging.info(f"✅ Cog geladen: {filename}")
                     except Exception as e:
                         logging.error(f"❌ Fehler bei {filename}: {e}")
-        
-        # 2. GLOBAL SYNC FIX
-        # Das hier erzwingt die Synchronisation mit den Discord-Servern
-        try:
-            logging.info("⏳ Synchronisiere Slash-Commands global...")
-            synced = await self.tree.sync()
-            logging.info(f"✅ {len(synced)} Slash-Commands wurden GLOBAL synchronisiert!")
-        except Exception as e:
-            logging.error(f"❌ Globaler Sync fehlgeschlagen: {e}")
+        else:
+            logging.error("❌ KRITISCH: Kein 'cogs' Ordner gefunden!")
+
+        # Globaler Sync
+        logging.info("⏳ Synchronisiere Slash-Commands global...")
+        await self.tree.sync()
+        logging.info("🌐 Globaler Sync abgeschlossen!")
 
     async def on_ready(self):
-        logging.info(f"🚀 {self.user} ist jetzt online und bereit!")
+        logging.info(f"🚀 Bot online als {self.user}")
 
-async def start():
-    # Flask in separatem Thread starten
+async def run_all():
+    # Flask Server für Render starten
     Thread(target=run_flask, daemon=True).start()
     
     bot = NeonBot()
@@ -66,6 +76,6 @@ async def start():
 
 if __name__ == "__main__":
     if not TOKEN:
-        logging.error("❌ DISCORD_TOKEN fehlt in den Umgebungsvariablen!")
+        logging.error("❌ TOKEN fehlt!")
     else:
-        asyncio.run(start())
+        asyncio.run(run_all())

@@ -1,6 +1,5 @@
+discord.py[voice]
 flask
-requests
-requests_oauthlib
 python-dotenv
-discord.py
 supabase
+requests
