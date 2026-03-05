@@ -2,80 +2,106 @@ import discord
 from discord.ext import commands
 import os
 import asyncio
+import logging
+import sys
 from dotenv import load_dotenv
 from flask import Flask
 from threading import Thread
-import logging
-import sys
 
-# Logging Setup
-logging.basicConfig(level=logging.INFO)
+# 1. LOGGING SETUP (Wichtig für Render-Logs)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
 
-# --- RENDER PORT BINDING (Dummy Server) ---
+# 2. RENDER PORT BINDING (Verhindert "No open ports detected")
 app = Flask(__name__)
+
 @app.route('/')
-def home(): return "NeonBot is Live!"
+def home():
+    return "NeonBot is Live and Running!"
 
 def run_flask():
+    # Render vergibt den Port dynamisch über die Umgebungsvariable PORT
     port = int(os.environ.get('PORT', 8080))
+    logging.info(f"🌐 Starte Webserver auf Port {port}...")
     app.run(host='0.0.0.0', port=port)
 
-# --- BOT SETUP ---
+# 3. BOT INITIALISIERUNG
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 
 class NeonBot(commands.Bot):
     def __init__(self):
-        # WICHTIG: Stelle sicher, dass Presence/Members/Message Intents im Portal AN sind!
+        # WICHTIG: Stelle sicher, dass Presence/Members/Message Intents im Discord Portal AN sind!
         intents = discord.Intents.all()
-        super().__init__(command_prefix="!", intents=intents, help_command=None)
+        super().__init__(
+            command_prefix="!", 
+            intents=intents, 
+            help_command=None
+        )
 
     async def setup_hook(self):
-        # Dynamische Pfadsuche für Cogs
-        possible_paths = [
-            os.path.join(os.getcwd(), "cogs"),
-            os.path.join(os.getcwd(), "bot", "cogs"),
-            os.path.join(os.path.dirname(__file__), "cogs")
-        ]
+        # PFAD-FIX: Ermittle das Hauptverzeichnis (eins über /bot/)
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        root_dir = os.path.dirname(current_dir)
         
-        cogs_dir = None
-        for path in possible_paths:
-            if os.path.exists(path):
-                cogs_dir = path
-                break
+        # Füge das Hauptverzeichnis zum Python-Pfad hinzu, damit 'cogs' gefunden wird
+        if root_dir not in sys.path:
+            sys.path.insert(0, root_dir)
         
-        if cogs_dir:
-            logging.info(f"📂 Lade Cogs aus: {cogs_dir}")
+        cogs_dir = os.path.join(root_dir, "cogs")
+        logging.info(f"📂 Suche Cogs in: {cogs_dir}")
+
+        # Cogs laden
+        if os.path.exists(cogs_dir):
             for filename in os.listdir(cogs_dir):
                 if filename.endswith(".py"):
-                    cog_name = f"cogs.{filename[:-3]}"
-                    # Falls der Ordnerpfad tiefer liegt, passen wir den Import an
+                    cog_path = f"cogs.{filename[:-3]}"
                     try:
-                        await self.load_extension(cog_name)
+                        await self.load_extension(cog_name := cog_path)
                         logging.info(f"✅ Cog geladen: {filename}")
                     except Exception as e:
-                        logging.error(f"❌ Fehler bei {filename}: {e}")
+                        logging.error(f"❌ Fehler beim Laden von {filename}: {e}")
         else:
-            logging.error("❌ KRITISCH: Kein 'cogs' Ordner gefunden!")
+            logging.error(f"⚠️ KRITISCH: Ordner {cogs_dir} nicht gefunden!")
 
-        # Globaler Sync
-        logging.info("⏳ Synchronisiere Slash-Commands global...")
-        await self.tree.sync()
-        logging.info("🌐 Globaler Sync abgeschlossen!")
+        # GLOBAL SLASH COMMAND SYNC
+        try:
+            logging.info("⏳ Synchronisiere Slash-Commands global (das kann kurz dauern)...")
+            synced = await self.tree.sync()
+            logging.info(f"🌐 {len(synced)} Slash-Commands wurden GLOBAL synchronisiert!")
+        except Exception as e:
+            logging.error(f"❌ Globaler Sync fehlgeschlagen: {e}")
 
     async def on_ready(self):
-        logging.info(f"🚀 Bot online als {self.user}")
+        logging.info(f"🚀 Bot erfolgreich eingeloggt als {self.user} (ID: {self.user.id})")
+        # Setzt einen Status
+        await self.change_presence(activity=discord.Game(name="/settings | NeonBot"))
 
-async def run_all():
-    # Flask Server für Render starten
-    Thread(target=run_flask, daemon=True).start()
+# 4. START-LOGIK
+async def start_bot():
+    # Starte Flask in einem separaten Thread (Daemon sorgt dafür, dass er mit dem Bot stirbt)
+    flask_thread = Thread(target=run_flask, daemon=True)
+    flask_thread.start()
     
     bot = NeonBot()
+    
+    if not TOKEN:
+        logging.error("❌ DISCORD_TOKEN nicht in der .env oder den Render-Settings gefunden!")
+        return
+
     async with bot:
-        await bot.start(TOKEN)
+        try:
+            await bot.start(TOKEN)
+        except discord.LoginFailure:
+            logging.error("❌ Login fehlgeschlagen! Der Token ist ungültig.")
+        except Exception as e:
+            logging.error(f"❌ Ein kritischer Fehler ist aufgetreten: {e}")
 
 if __name__ == "__main__":
-    if not TOKEN:
-        logging.error("❌ TOKEN fehlt!")
-    else:
-        asyncio.run(run_all())
+    try:
+        asyncio.run(start_bot())
+    except KeyboardInterrupt:
+        logging.info("👋 Bot wird heruntergefahren...")
