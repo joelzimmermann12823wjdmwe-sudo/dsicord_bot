@@ -7,9 +7,9 @@ class kick(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @app_commands.command(name="kick", description="Vom Server kicken")
+    @app_commands.command(name="kick", description="User vom Server kicken")
     @app_commands.checks.has_permissions(kick_members=True)
-    async def kick(self, itx: discord.Interaction, user: discord.Member, grund: str = 'Kein Grund'): await user.kick(reason=grund); await itx.response.send_message(f'✅ Gekickt: {user}')
+    async def kick(self, itx: discord.Interaction, user: discord.Member, grund: str = 'Kein Grund'): await user.kick(reason=grund); await itx.response.send_message(f'👢 **{user}** wurde gekickt. Grund: {grund}')
 
 async def setup(bot):
     await bot.add_cog(kick(bot))

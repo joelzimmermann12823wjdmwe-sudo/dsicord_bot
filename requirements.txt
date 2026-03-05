@@ -3,3 +3,4 @@ requests
 requests_oauthlib
 python-dotenv
 discord.py
+supabase
