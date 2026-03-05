@@ -54,5 +54,19 @@ class settings(commands.Cog):
 
         await itx.response.send_message(embed=embed)
 
+    # Füge diesen Befehl in deine bestehende cogs/settings.py ein:
+
+@app_commands.command(name="setlogchannel", description="Legt den Kanal für Logs fest")
+@app_commands.checks.has_permissions(administrator=True)
+async def set_logs(self, itx: discord.Interaction, kanal: discord.TextChannel):
+    res = self.supabase.table("server_configs").select("config").eq("guild_id", str(itx.guild.id)).execute()
+    config = res.data[0]['config'] if res.data else {}
+
+    config["log_channel"] = str(kanal.id)
+    config["logging"] = True # Direkt aktivieren
+
+    self.supabase.table("server_configs").upsert({"guild_id": str(itx.guild.id), "config": config}).execute()
+    await itx.response.send_message(f"✅ Log-Kanal wurde auf {kanal.mention} gesetzt!")
+
 async def setup(bot):
     await bot.add_cog(settings(bot))
