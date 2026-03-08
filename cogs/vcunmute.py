@@ -10,6 +10,8 @@ class vcunmute(commands.Cog):
     @app_commands.command(name="vcunmute", description="Voice-Mute aufheben")
     @app_commands.checks.has_permissions(mute_members=True)
     async def vcunmute(self, itx: discord.Interaction, user: discord.Member): await user.edit(mute=False); await itx.response.send_message(f'🔊 **{user}** ist im Voice wieder hörbar.')
+        await itx.response.defer(ephemeral=True)
+        await itx.response.defer(ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(vcunmute(bot))

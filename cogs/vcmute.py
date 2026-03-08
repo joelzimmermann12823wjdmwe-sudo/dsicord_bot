@@ -10,6 +10,8 @@ class vcmute(commands.Cog):
     @app_commands.command(name="vcmute", description="User im Voice stumm schalten")
     @app_commands.checks.has_permissions(mute_members=True)
     async def vcmute(self, itx: discord.Interaction, user: discord.Member): await user.edit(mute=True); await itx.response.send_message(f'🔇 **{user}** wurde im Voice gemuted.')
+        await itx.response.defer(ephemeral=True)
+        await itx.response.defer(ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(vcmute(bot))

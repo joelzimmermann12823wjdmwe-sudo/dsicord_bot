@@ -10,6 +10,8 @@ class softban(commands.Cog):
     @app_commands.command(name="softban", description="Bannen und sofort entbannen (löscht Nachrichten)")
     @app_commands.checks.has_permissions(ban_members=True)
     async def softban(self, itx: discord.Interaction, user: discord.Member, grund: str = 'Kein Grund'): await itx.guild.ban(user, reason=grund, delete_message_days=7); await itx.guild.unban(user, reason='Softban'); await itx.response.send_message(f'🧹 **{user}** wurde ge-softbant.')
+        await itx.response.defer(ephemeral=True)
+        await itx.response.defer(ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(softban(bot))

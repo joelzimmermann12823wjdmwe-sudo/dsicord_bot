@@ -8,6 +8,8 @@ class help_command(commands.Cog):
 
     @app_commands.command(name="help", description="Zeigt eine Übersicht aller verfügbaren Befehle")
     async def help(self, itx: discord.Interaction):
+        await itx.response.defer(ephemeral=True)
+        await itx.response.defer(ephemeral=True)
         # Timeout verhindern
         await itx.response.defer(ephemeral=False)
 

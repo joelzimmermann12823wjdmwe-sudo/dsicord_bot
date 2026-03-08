@@ -10,6 +10,8 @@ class slowmode(commands.Cog):
     @app_commands.command(name="slowmode", description="Slowmode setzen (Sekunden)")
     @app_commands.checks.has_permissions(manage_channels=True)
     async def slowmode(self, itx: discord.Interaction, sekunden: int): await itx.channel.edit(slowmode_delay=sekunden); await itx.response.send_message(f'⏱️ Slowmode auf {sekunden} Sekunden gesetzt.')
+        await itx.response.defer(ephemeral=True)
+        await itx.response.defer(ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(slowmode(bot))

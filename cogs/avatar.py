@@ -10,6 +10,8 @@ class avatar(commands.Cog):
     @app_commands.command(name="avatar", description="Avatar in Groß anzeigen")
     @app_commands.checks.has_permissions(send_messages=True)
     async def avatar(self, itx: discord.Interaction, user: discord.User): embed = discord.Embed(title=f'Avatar von {user.name}', color=discord.Color.teal()); embed.set_image(url=user.display_avatar.url); await itx.response.send_message(embed=embed)
+        await itx.response.defer(ephemeral=True)
+        await itx.response.defer(ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(avatar(bot))

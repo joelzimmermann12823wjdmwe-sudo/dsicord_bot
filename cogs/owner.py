@@ -9,6 +9,8 @@ class owner(commands.Cog):
 
     @app_commands.command(name="restart", description="Startet den Bot neu")
     async def restart(self, itx: discord.Interaction):
+        await itx.response.defer(ephemeral=True)
+        await itx.response.defer(ephemeral=True)
         # Ersetze die ID mit deiner Discord-ID!
         if itx.user.id != itx.client.application.owner.id:
             return await itx.response.send_message("❌ Zugriff verweigert.", ephemeral=True)
