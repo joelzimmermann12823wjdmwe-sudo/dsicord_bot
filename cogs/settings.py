@@ -28,6 +28,7 @@ class settings(commands.Cog):
         await itx.response.defer(ephemeral=True)
         await itx.response.defer(ephemeral=True)
         await itx.response.defer(ephemeral=True)
+        await itx.response.defer(ephemeral=True)
         cfg = await self.get_cfg(itx.guild.id)
         cfg[modul] = status
         await self.save_cfg(itx.guild.id, cfg)
@@ -35,6 +36,7 @@ class settings(commands.Cog):
 
     @settings_group.command(name="setup_welcome", description="Willkommens-Kanal festlegen")
     async def welcome_setup(self, itx: discord.Interaction, kanal: discord.TextChannel):
+        await itx.response.defer(ephemeral=True)
         await itx.response.defer(ephemeral=True)
         await itx.response.defer(ephemeral=True)
         await itx.response.defer(ephemeral=True)

@@ -12,6 +12,7 @@ class owner(commands.Cog):
         await itx.response.defer(ephemeral=True)
         await itx.response.defer(ephemeral=True)
         await itx.response.defer(ephemeral=True)
+        await itx.response.defer(ephemeral=True)
         # Ersetze die ID mit deiner Discord-ID!
         if itx.user.id != itx.client.application.owner.id:
             return await itx.followup.send("âŒ Zugriff verweigert.", ephemeral=True)

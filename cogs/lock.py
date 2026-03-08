@@ -13,6 +13,7 @@ class lock(commands.Cog):
         await itx.response.defer(ephemeral=True)
         await itx.response.defer(ephemeral=True)
         await itx.response.defer(ephemeral=True)
+        await itx.response.defer(ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(lock(bot))
