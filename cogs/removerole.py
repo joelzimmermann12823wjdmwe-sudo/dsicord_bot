@@ -11,9 +11,7 @@ class removerole(commands.Cog):
     @app_commands.checks.has_permissions(manage_roles=True)
     async def removerole(self, itx: discord.Interaction, user: discord.Member, rolle: discord.Role): await user.remove_roles(rolle); await itx.followup.send(f'âŒ **{user.name}** hat die Rolle **{rolle.name}** verloren.')
         await itx.response.defer(ephemeral=True)
-        await itx.response.defer(ephemeral=True)
-        await itx.response.defer(ephemeral=True)
-        await itx.response.defer(ephemeral=True)
+
 
 async def setup(bot):
     await bot.add_cog(removerole(bot))

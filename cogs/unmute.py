@@ -11,9 +11,7 @@ class unmute(commands.Cog):
     @app_commands.checks.has_permissions(moderate_members=True)
     async def unmute(self, itx: discord.Interaction, user: discord.Member): await user.timeout(None); await itx.followup.send(f'ðŸ”Š **{user}** ist nicht mehr gemuted.')
         await itx.response.defer(ephemeral=True)
-        await itx.response.defer(ephemeral=True)
-        await itx.response.defer(ephemeral=True)
-        await itx.response.defer(ephemeral=True)
+
 
 async def setup(bot):
     await bot.add_cog(unmute(bot))

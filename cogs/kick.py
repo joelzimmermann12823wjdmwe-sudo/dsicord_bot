@@ -11,9 +11,7 @@ class kick(commands.Cog):
     @app_commands.checks.has_permissions(kick_members=True)
     async def kick(self, itx: discord.Interaction, user: discord.Member, grund: str = 'Kein Grund'): await user.kick(reason=grund); await itx.followup.send(f'ðŸ‘¢ **{user}** wurde gekickt. Grund: {grund}')
         await itx.response.defer(ephemeral=True)
-        await itx.response.defer(ephemeral=True)
-        await itx.response.defer(ephemeral=True)
-        await itx.response.defer(ephemeral=True)
+
 
 async def setup(bot):
     await bot.add_cog(kick(bot))

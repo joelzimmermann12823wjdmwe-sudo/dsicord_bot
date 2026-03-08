@@ -1,49 +1,69 @@
-﻿import discord
+﻿# -*- coding: utf-8 -*-
+import discord
 from discord.ext import commands
-import os, sys, asyncio, logging
+import os
+import asyncio
+import logging
+import sys
 from dotenv import load_dotenv
 from flask import Flask
 from threading import Thread
 
-# Logging ohne Umlaute fuer Render-Kompatibilitaet
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
+# Logging Setup
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+# Flask Server fuer Render (Keep-Alive)
 app = Flask(__name__)
 @app.route('/')
-def home(): return "Neon Bot is Online"
+def home(): return "Neon Bot is Sharded & Online"
 
 def run_flask():
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
+    port = int(os.environ.get('PORT', 8080))
+    app.run(host='0.0.0.0', port=port)
 
 load_dotenv()
+TOKEN = os.getenv("DISCORD_TOKEN")
 
-class NeonBot(commands.AutoShardedBot): # Sharding fuer 1000+ Server
+# AutoShardedBot fuer Support von 1000+ Servern
+class NeonBot(commands.AutoShardedBot):
     def __init__(self):
-        super().__init__(command_prefix="!", intents=discord.Intents.all(), help_command=None)
+        intents = discord.Intents.all()
+        super().__init__(command_prefix="!", intents=intents, help_command=None)
 
     async def setup_hook(self):
-        # Dynamisches Laden des gesamten Cogs-Ordners
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        root_dir = os.path.dirname(base_dir) if "bot" in base_dir else base_dir
-        if root_dir not in sys.path: sys.path.insert(0, root_dir)
+        # Pfad-Logik zum automatischen Laden des Cogs-Ordners
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        root_dir = os.path.dirname(current_dir) if "bot" in current_dir else current_dir
         
-        cogs_path = os.path.join(root_dir, "cogs")
-        for file in os.listdir(cogs_path):
-            if file.endswith(".py"):
-                try:
-                    await self.load_extension(f"cogs.{file[:-3]}")
-                    print(f"Erfolg: {file} geladen")
-                except Exception as e:
-                    print(f"Fehler in {file}: {e}")
+        if root_dir not in sys.path:
+            sys.path.insert(0, root_dir)
+            
+        cogs_dir = os.path.join(root_dir, "cogs")
+        logging.info(f"Scanning directory: {cogs_dir}")
+
+        # Lade jede .py Datei im Ordner automatisch
+        if os.path.exists(cogs_dir):
+            for filename in os.listdir(cogs_dir):
+                if filename.endswith(".py"):
+                    try:
+                        await self.load_extension(f"cogs.{filename[:-3]}")
+                        logging.info(f"Successfully loaded: {filename}")
+                    except Exception as e:
+                        logging.error(f"Failed to load {filename}: {e}")
+
+        # Synchronisiere alle Slash-Commands global
         await self.tree.sync()
 
     async def on_ready(self):
-        print(f"Bot ist bereit als {self.user}")
+        logging.info(f"Logged in as {self.user} on {len(self.guilds)} servers")
+        # Status setzen: Spielt /help
         await self.change_presence(activity=discord.Game(name="/help"))
 
-async def start():
+async def run():
     Thread(target=run_flask, daemon=True).start()
     bot = NeonBot()
-    async with bot: await bot.start(os.getenv("DISCORD_TOKEN"))
+    async with bot:
+        await bot.start(TOKEN)
 
-if __name__ == "__main__": asyncio.run(start())
+if __name__ == "__main__":
+    asyncio.run(run())

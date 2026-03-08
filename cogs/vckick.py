@@ -11,9 +11,7 @@ class vckick(commands.Cog):
     @app_commands.checks.has_permissions(move_members=True)
     async def vckick(self, itx: discord.Interaction, user: discord.Member): await user.move_to(None); await itx.followup.send(f'ðŸšª **{user}** wurde aus dem Voice gekickt.')
         await itx.response.defer(ephemeral=True)
-        await itx.response.defer(ephemeral=True)
-        await itx.response.defer(ephemeral=True)
-        await itx.response.defer(ephemeral=True)
+
 
 async def setup(bot):
     await bot.add_cog(vckick(bot))

@@ -6,45 +6,46 @@ class help_cog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @app_commands.command(name="help", description="Zeigt die Neon Bot Hilfe")
+    @app_commands.command(name="help", description="Zeigt alle Befehle und Infos zum Neon Bot")
     async def help(self, itx: discord.Interaction):
-        await itx.response.defer(ephemeral=True)
-        await itx.response.defer(ephemeral=True)
-        # Defer verhindert den "Anwendung reagiert nicht" Fehler
+        # Erstes Defer: Kauft 15 Minuten Zeit gegen den Timeout-Fehler
         await itx.response.defer(ephemeral=False)
 
         embed = discord.Embed(
-            title="Neon Bot - Hilfemenue",
-            description="Dein All-in-One Bot fuer Moderation, System und Tools.",
-            color=discord.Color.from_rgb(0, 255, 255) # Neon Blau
+            title="✨ Neon Bot - Hilfe & Übersicht",
+            description="Dein Bot fuer Moderation, Verwaltung und Tools auf ueber 1.000 Servern.",
+            color=discord.Color.blue()
         )
 
+        # Kategorien basierend auf deinen Dateien
         embed.add_field(
-            name="ðŸ›¡ï¸ Moderation (Admin only)",
-            value="`/ban`, `/kick`, `/mute`, `/clear`, `/lock`, `/nuke`, `/slowmode` - Halte deinen Server sauber.",
+            name="🛡️ Moderation (Admin)",
+            value="`/ban`, `/kick`, `/mute`, `/clear`, `/lock`, `/nuke`, `/slowmode`",
             inline=False
         )
 
         embed.add_field(
-            name="âš™ï¸ Verwaltung",
-            value="`/settings`, `/automod`, `/welcome`, `/logging`, `/addrole` - Automatisiere deinen Server.",
+            name="⚙️ System & Verwaltung",
+            value="`/settings`, `/automod`, `/welcome`, `/logging`, `/addrole`",
             inline=False
         )
 
         embed.add_field(
-            name="ðŸ› ï¸ Tools & Info",
-            value="`/ping`, `/avatar`, `/userinfo`, `/serverinfo`, `/nick` - Nuetzliche Funktionen fuer jeden.",
+            name="🛠️ Tools & Info",
+            value="`/ping`, `/avatar`, `/userinfo`, `/serverinfo`, `/nick`",
             inline=False
         )
 
+        # Website Link
         embed.add_field(
-            name="ðŸ”— Links",
-            value="[Besuche unsere Website](https://neon-bot-2026.vercel.app/)",
+            name="🔗 Website",
+            value="[https://neon-bot-2026.vercel.app/](https://neon-bot-2026.vercel.app/)",
             inline=False
         )
 
-        embed.set_footer(text="Neon Bot 2026 | Sharded for 1000+ Servers")
+        embed.set_footer(text="Neon Bot 2026 | Sharding aktiv")
         
+        # Antwort senden (WICHTIG: followup nutzen nach defer!)
         await itx.followup.send(embed=embed)
 
 async def setup(bot):

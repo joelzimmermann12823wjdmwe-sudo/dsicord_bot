@@ -11,9 +11,6 @@ class nick(commands.Cog):
     @app_commands.checks.has_permissions(manage_nicknames=True)
     async def nick(self, itx: discord.Interaction, user: discord.Member, name: str): await user.edit(nick=name); await itx.followup.send(f'âœï¸ Nickname geÃ¤ndert zu **{name}**.')
         await itx.response.defer(ephemeral=True)
-        await itx.response.defer(ephemeral=True)
-        await itx.response.defer(ephemeral=True)
-        await itx.response.defer(ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(nick(bot))

@@ -11,9 +11,7 @@ class ping(commands.Cog):
     @app_commands.checks.has_permissions(send_messages=True)
     async def ping(self, itx: discord.Interaction): await itx.followup.send(f'ðŸ“ Pong! **{round(self.bot.latency * 1000)}ms**')
         await itx.response.defer(ephemeral=True)
-        await itx.response.defer(ephemeral=True)
-        await itx.response.defer(ephemeral=True)
-        await itx.response.defer(ephemeral=True)
+
 
 async def setup(bot):
     await bot.add_cog(ping(bot))

@@ -11,9 +11,7 @@ class lock(commands.Cog):
     @app_commands.checks.has_permissions(manage_channels=True)
     async def lock(self, itx: discord.Interaction): await itx.channel.set_permissions(itx.guild.default_role, send_messages=False); await itx.followup.send('ðŸ”’ Kanal gesperrt.')
         await itx.response.defer(ephemeral=True)
-        await itx.response.defer(ephemeral=True)
-        await itx.response.defer(ephemeral=True)
-        await itx.response.defer(ephemeral=True)
+
 
 async def setup(bot):
     await bot.add_cog(lock(bot))

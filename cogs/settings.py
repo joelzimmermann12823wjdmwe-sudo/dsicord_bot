@@ -1,4 +1,4 @@
-﻿import discord
+import discord
 from discord import app_commands
 from discord.ext import commands
 from supabase import create_client, Client
@@ -25,26 +25,18 @@ class settings(commands.Cog):
         app_commands.Choice(name="Logging", value="logging")
     ])
     async def toggle(self, itx: discord.Interaction, modul: str, status: bool):
-        await itx.response.defer(ephemeral=True)
-        await itx.response.defer(ephemeral=True)
-        await itx.response.defer(ephemeral=True)
-        await itx.response.defer(ephemeral=True)
         cfg = await self.get_cfg(itx.guild.id)
         cfg[modul] = status
         await self.save_cfg(itx.guild.id, cfg)
-        await itx.followup.send(f"âœ… **{modul}** ist jetzt {'AN' if status else 'AUS'}.", ephemeral=True)
+        await itx.followup.send(f"✅ **{modul}** ist jetzt {'AN' if status else 'AUS'}.", ephemeral=True)
 
     @settings_group.command(name="setup_welcome", description="Willkommens-Kanal festlegen")
     async def welcome_setup(self, itx: discord.Interaction, kanal: discord.TextChannel):
-        await itx.response.defer(ephemeral=True)
-        await itx.response.defer(ephemeral=True)
-        await itx.response.defer(ephemeral=True)
-        await itx.response.defer(ephemeral=True)
         cfg = await self.get_cfg(itx.guild.id)
         cfg["welcome_channel"] = str(kanal.id)
         cfg["welcome"] = True
         await self.save_cfg(itx.guild.id, cfg)
-        await itx.followup.send(f"âœ… Willkommens-Kanal auf {kanal.mention} gesetzt!", ephemeral=True)
+        await itx.followup.send(f"✅ Willkommens-Kanal auf {kanal.mention} gesetzt!", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(settings(bot))
