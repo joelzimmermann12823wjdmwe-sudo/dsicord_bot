@@ -1,4 +1,4 @@
-import discord
+﻿import discord
 from discord import app_commands
 from discord.ext import commands
 import sys
@@ -11,11 +11,12 @@ class owner(commands.Cog):
     async def restart(self, itx: discord.Interaction):
         await itx.response.defer(ephemeral=True)
         await itx.response.defer(ephemeral=True)
+        await itx.response.defer(ephemeral=True)
         # Ersetze die ID mit deiner Discord-ID!
         if itx.user.id != itx.client.application.owner.id:
-            return await itx.response.send_message("❌ Zugriff verweigert.", ephemeral=True)
+            return await itx.followup.send("âŒ Zugriff verweigert.", ephemeral=True)
         
-        await itx.response.send_message("🔄 Starte neu...", ephemeral=True)
+        await itx.followup.send("ðŸ”„ Starte neu...", ephemeral=True)
         sys.exit()
 
 async def setup(bot):

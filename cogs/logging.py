@@ -1,4 +1,4 @@
-import discord
+﻿import discord
 from discord.ext import commands
 from supabase import create_client, Client
 import os
@@ -20,7 +20,7 @@ class logging(commands.Cog):
         if cfg.get("logging") and cfg.get("log_channel"):
             channel = self.bot.get_channel(int(cfg.get("log_channel")))
             if channel:
-                embed = discord.Embed(title="🗑️ Nachricht gelöscht", color=discord.Color.red(), timestamp=discord.utils.utcnow())
+                embed = discord.Embed(title="ðŸ—‘ï¸ Nachricht gelÃ¶scht", color=discord.Color.red(), timestamp=discord.utils.utcnow())
                 embed.add_field(name="Autor", value=message.author.mention)
                 embed.add_field(name="Kanal", value=message.channel.mention)
                 embed.add_field(name="Inhalt", value=message.content or "Kein Text (evtl. Bild)", inline=False)
@@ -34,7 +34,7 @@ class logging(commands.Cog):
         if cfg.get("logging") and cfg.get("log_channel"):
             channel = self.bot.get_channel(int(cfg.get("log_channel")))
             if channel:
-                embed = discord.Embed(title="✏️ Nachricht bearbeitet", color=discord.Color.orange(), timestamp=discord.utils.utcnow())
+                embed = discord.Embed(title="âœï¸ Nachricht bearbeitet", color=discord.Color.orange(), timestamp=discord.utils.utcnow())
                 embed.add_field(name="Autor", value=before.author.mention)
                 embed.add_field(name="Vorher", value=before.content, inline=False)
                 embed.add_field(name="Nachher", value=after.content, inline=False)

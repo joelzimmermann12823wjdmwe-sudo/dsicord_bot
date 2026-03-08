@@ -1,4 +1,4 @@
-import discord
+﻿import discord
 from discord import app_commands
 from discord.ext import commands
 import datetime
@@ -9,7 +9,8 @@ class ping(commands.Cog):
 
     @app_commands.command(name="ping", description="Bot-Latenz anzeigen")
     @app_commands.checks.has_permissions(send_messages=True)
-    async def ping(self, itx: discord.Interaction): await itx.response.send_message(f'🏓 Pong! **{round(self.bot.latency * 1000)}ms**')
+    async def ping(self, itx: discord.Interaction): await itx.followup.send(f'ðŸ“ Pong! **{round(self.bot.latency * 1000)}ms**')
+        await itx.response.defer(ephemeral=True)
         await itx.response.defer(ephemeral=True)
         await itx.response.defer(ephemeral=True)
 

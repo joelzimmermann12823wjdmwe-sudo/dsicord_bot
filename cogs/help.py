@@ -1,4 +1,4 @@
-import discord
+﻿import discord
 from discord import app_commands
 from discord.ext import commands
 
@@ -8,6 +8,7 @@ class help_cog(commands.Cog):
 
     @app_commands.command(name="help", description="Zeigt die Neon Bot Hilfe")
     async def help(self, itx: discord.Interaction):
+        await itx.response.defer(ephemeral=True)
         # Defer verhindert den "Anwendung reagiert nicht" Fehler
         await itx.response.defer(ephemeral=False)
 
@@ -18,25 +19,25 @@ class help_cog(commands.Cog):
         )
 
         embed.add_field(
-            name="🛡️ Moderation (Admin only)",
+            name="ðŸ›¡ï¸ Moderation (Admin only)",
             value="`/ban`, `/kick`, `/mute`, `/clear`, `/lock`, `/nuke`, `/slowmode` - Halte deinen Server sauber.",
             inline=False
         )
 
         embed.add_field(
-            name="⚙️ Verwaltung",
+            name="âš™ï¸ Verwaltung",
             value="`/settings`, `/automod`, `/welcome`, `/logging`, `/addrole` - Automatisiere deinen Server.",
             inline=False
         )
 
         embed.add_field(
-            name="🛠️ Tools & Info",
+            name="ðŸ› ï¸ Tools & Info",
             value="`/ping`, `/avatar`, `/userinfo`, `/serverinfo`, `/nick` - Nuetzliche Funktionen fuer jeden.",
             inline=False
         )
 
         embed.add_field(
-            name="🔗 Links",
+            name="ðŸ”— Links",
             value="[Besuche unsere Website](https://neon-bot-2026.vercel.app/)",
             inline=False
         )

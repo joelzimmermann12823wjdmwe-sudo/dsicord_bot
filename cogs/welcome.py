@@ -1,4 +1,4 @@
-import discord
+﻿import discord
 from discord.ext import commands
 from supabase import create_client, Client
 import os
@@ -17,7 +17,7 @@ class welcome(commands.Cog):
         if cfg.get("welcome") and cfg.get("welcome_channel"):
             channel = self.bot.get_channel(int(cfg["welcome_channel"]))
             if channel:
-                embed = discord.Embed(title="Willkommen!", description=f"Hallo {member.mention}, schön dass du da bist!", color=discord.Color.green())
+                embed = discord.Embed(title="Willkommen!", description=f"Hallo {member.mention}, schÃ¶n dass du da bist!", color=discord.Color.green())
                 await channel.send(embed=embed)
 
 async def setup(bot):
