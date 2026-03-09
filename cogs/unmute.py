@@ -1,17 +1,17 @@
-﻿import discord
+import discord
 from discord import app_commands
 from discord.ext import commands
-import datetime
 
-class unmute(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
+class UnmuteCog(commands.Cog):
+    def __init__(self, bot): self.bot = bot
 
-    @app_commands.command(name="unmute", description="Discord Timeout aufheben")
-    @app_commands.checks.has_permissions(moderate_members=True)
-    async def unmute(self, itx: discord.Interaction, user: discord.Member): await user.timeout(None); await itx.followup.send(f'ðŸ”Š **{user}** ist nicht mehr gemuted.')
+    @app_commands.command(name="unmute", description="Hebt die Stummschaltung auf")
+    @app_commands.default_permissions(moderate_members=True)
+    async def unmute(self, itx: discord.Interaction, member: discord.Member):
         await itx.response.defer(ephemeral=True)
-
-
-async def setup(bot):
-    await bot.add_cog(unmute(bot))
+        try:
+            await member.timeout(None)
+            await itx.followup.send(f"🔊 {member.mention} kann wieder sprechen.")
+        except:
+            await itx.followup.send("❌ Fehler beim Entmuten.")
+async def setup(bot): await bot.add_cog(UnmuteCog(bot))

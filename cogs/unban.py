@@ -1,17 +1,18 @@
-﻿import discord
+import discord
 from discord import app_commands
 from discord.ext import commands
-import datetime
 
-class unban(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
+class UnbanCog(commands.Cog):
+    def __init__(self, bot): self.bot = bot
 
-    @app_commands.command(name="unban", description="User per ID entbannen")
-    @app_commands.checks.has_permissions(ban_members=True)
-    async def unban(self, itx: discord.Interaction, user_id: str, grund: str = 'Kein Grund'): user = await self.bot.fetch_user(int(user_id)); await itx.guild.unban(user, reason=grund); await itx.followup.send(f'ðŸ•Šï¸ **{user}** wurde entbannt.')
+    @app_commands.command(name="unban", description="Entbannt einen Nutzer (Nutzer-ID erforderlich)")
+    @app_commands.default_permissions(ban_members=True)
+    async def unban(self, itx: discord.Interaction, user_id: str):
         await itx.response.defer(ephemeral=True)
-
-
-async def setup(bot):
-    await bot.add_cog(unban(bot))
+        try:
+            user = await self.bot.fetch_user(int(user_id))
+            await itx.guild.unban(user)
+            await itx.followup.send(f"✅ {user.name} wurde entbannt.")
+        except:
+            await itx.followup.send("❌ Fehler: Nutzer nicht gefunden oder nicht gebannt.")
+async def setup(bot): await bot.add_cog(UnbanCog(bot))

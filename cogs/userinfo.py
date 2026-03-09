@@ -1,16 +1,16 @@
-﻿import discord
+import discord
 from discord import app_commands
 from discord.ext import commands
-import datetime
 
-class userinfo(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
+class UserinfoCog(commands.Cog):
+    def __init__(self, bot): self.bot = bot
 
-    @app_commands.command(name="userinfo", description="Infos Ã¼ber einen User")
-    @app_commands.checks.has_permissions(send_messages=True)
-    async def userinfo(self, itx: discord.Interaction, user: discord.Member): embed = discord.Embed(title=str(user), color=user.color); embed.add_field(name='ID', value=user.id); embed.add_field(name='Beigetreten', value=user.joined_at.strftime('%Y-%m-%d')); await itx.followup.send(embed=embed)
-        await itx.response.defer(ephemeral=True)
-
-async def setup(bot):
-    await bot.add_cog(userinfo(bot))
+    @app_commands.command(name="userinfo", description="Zeigt Infos über einen Nutzer")
+    async def userinfo(self, itx: discord.Interaction, member: discord.Member):
+        await itx.response.defer(ephemeral=False)
+        embed = discord.Embed(title=f"Info über {member.name}", color=member.color)
+        embed.add_field(name="Beigetreten", value=member.joined_at.strftime("%d.%m.%Y"))
+        embed.add_field(name="Account erstellt", value=member.created_at.strftime("%d.%m.%Y"))
+        if member.avatar: embed.set_thumbnail(url=member.avatar.url)
+        await itx.followup.send(embed=embed)
+async def setup(bot): await bot.add_cog(UserinfoCog(bot))

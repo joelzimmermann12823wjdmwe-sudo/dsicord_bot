@@ -1,17 +1,17 @@
-﻿import discord
+import discord
 from discord import app_commands
 from discord.ext import commands
-import datetime
 
-class clear(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
+class ClearCog(commands.Cog):
+    def __init__(self, bot): self.bot = bot
 
-    @app_commands.command(name="clear", description="Nachrichten lÃ¶schen (max 100)")
-    @app_commands.checks.has_permissions(manage_messages=True)
-    async def clear(self, itx: discord.Interaction, anzahl: int): deleted = await itx.channel.purge(limit=min(anzahl, 100)); await itx.followup.send(f'ðŸ—‘ï¸ **{len(deleted)}** Nachrichten gelÃ¶scht.', ephemeral=True)
+    @app_commands.command(name="clear", description="Löscht massenhaft Nachrichten")
+    @app_commands.default_permissions(manage_messages=True)
+    async def clear(self, itx: discord.Interaction, anzahl: int):
         await itx.response.defer(ephemeral=True)
-
-
-async def setup(bot):
-    await bot.add_cog(clear(bot))
+        try:
+            geloescht = await itx.channel.purge(limit=anzahl)
+            await itx.followup.send(f"🗑️ {len(geloescht)} Nachrichten gelöscht.")
+        except:
+            await itx.followup.send("❌ Fehler: Nachrichten zu alt (Discord Limit: 14 Tage) oder keine Rechte.")
+async def setup(bot): await bot.add_cog(ClearCog(bot))

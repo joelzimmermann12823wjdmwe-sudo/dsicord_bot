@@ -1,20 +1,16 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-import sys
 
-class owner(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
+class OwnerCog(commands.Cog):
+    def __init__(self, bot): self.bot = bot
 
-    @app_commands.command(name="restart", description="Startet den Bot neu")
-    async def restart(self, itx: discord.Interaction):
-        # Ersetze die ID mit deiner Discord-ID!
-        if itx.user.id != itx.client.application.owner.id:
-            return await itx.followup.send("❌ Zugriff verweigert.", ephemeral=True)
-        
-        await itx.followup.send("🔄 Starte neu...", ephemeral=True)
-        sys.exit()
-
-async def setup(bot):
-    await bot.add_cog(owner(bot))
+    @app_commands.command(name="owner", description="Geheime Bot-Befehle")
+    async def owner(self, itx: discord.Interaction):
+        await itx.response.defer(ephemeral=True)
+        # Pruefen, ob Nutzer Admin/Owner ist
+        if not itx.user.guild_permissions.administrator:
+            await itx.followup.send("❌ Du hast keine Rechte dafür.")
+            return
+        await itx.followup.send("👑 Owner-Panel: Der Bot läuft perfekt.")
+async def setup(bot): await bot.add_cog(OwnerCog(bot))
