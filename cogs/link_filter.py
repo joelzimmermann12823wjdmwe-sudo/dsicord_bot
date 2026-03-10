@@ -1,12 +1,15 @@
 import discord
 from discord.ext import commands
 import datetime
+import asyncio
 
-class Linkfilter(commands.Cog):
+class LinkFilter(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.hybrid_command(name="link_filter", description="Befehl link_filter")\n    async def link_filter(self, ctx): await ctx.send("🛠️ Dieser Befehl ist aktiv, die Logik folgt bald!")
+    @commands.Cog.listener()
+    async def on_message(self, msg):
+        if "http" in msg.content and not msg.author.guild_permissions.administrator: await msg.delete(); await msg.channel.send("🔗 Links verboten!", delete_after=2)
 
 async def setup(bot):
-    await bot.add_cog(Linkfilter(bot))
+    await bot.add_cog(LinkFilter(bot))

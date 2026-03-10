@@ -1,12 +1,14 @@
 import discord
 from discord.ext import commands
 import datetime
+import asyncio
 
-class Loggingevent(commands.Cog):
+class LoggingEvent(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.hybrid_command(name="logging_event", description="Befehl logging_event")\n    async def logging_event(self, ctx): await ctx.send("🛠️ Dieser Befehl ist aktiv, die Logik folgt bald!")
+    @commands.Cog.listener()
+    async def on_user_update(self, b, a): pass
 
 async def setup(bot):
-    await bot.add_cog(Loggingevent(bot))
+    await bot.add_cog(LoggingEvent(bot))

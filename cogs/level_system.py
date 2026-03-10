@@ -1,12 +1,15 @@
 import discord
 from discord.ext import commands
 import datetime
+import asyncio
 
-class Levelsystem(commands.Cog):
+class LevelSystem(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.hybrid_command(name="level_system", description="Befehl level_system")\n    async def level_system(self, ctx): await ctx.send("🛠️ Dieser Befehl ist aktiv, die Logik folgt bald!")
+    @commands.Cog.listener()
+    async def on_message(self, msg): # XP Logik hier
+        pass
 
 async def setup(bot):
-    await bot.add_cog(Levelsystem(bot))
+    await bot.add_cog(LevelSystem(bot))

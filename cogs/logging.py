@@ -1,12 +1,15 @@
 import discord
 from discord.ext import commands
 import datetime
+import asyncio
 
 class Logging(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.hybrid_command(name="logging", description="Befehl logging")\n    async def logging(self, ctx): await ctx.send("🛠️ Dieser Befehl ist aktiv, die Logik folgt bald!")
+    @commands.Cog.listener()
+    async def on_message_delete(self, m): ch=discord.utils.get(m.guild.channels, name="logs");
+    if ch: await ch.send(f"🗑️ Gelöscht: {m.content} von {m.author}")
 
 async def setup(bot):
     await bot.add_cog(Logging(bot))

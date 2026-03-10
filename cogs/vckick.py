@@ -1,17 +1,14 @@
 import discord
 from discord.ext import commands
 import datetime
+import asyncio
 
-class VCKick(commands.Cog):
+class Vckick(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.hybrid_command(name="vckick", description="Kickt aus dem Voice")
-    @commands.has_permissions(move_members=True)
-    async def vckick(self, ctx, member: discord.Member):
-        if member.voice:
-            await member.move_to(None)
-            await ctx.send(f"🔇 {member.name} aus dem Voice gekickt.")
+    @commands.hybrid_command(name="vckick")
+    async def vckick(self, ctx, m: discord.Member): await m.move_to(None); await ctx.send(f"👢 {m} aus VC geworfen.")
 
 async def setup(bot):
-    await bot.add_cog(VCKick(bot))
+    await bot.add_cog(Vckick(bot))
