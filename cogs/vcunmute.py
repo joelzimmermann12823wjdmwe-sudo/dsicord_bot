@@ -1,14 +1,16 @@
 import discord
 from discord.ext import commands
 import datetime
-import asyncio
 
 class Vcunmute(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.hybrid_command(name="vcunmute")
-    async def vcunmute(self, ctx, m: discord.Member): await m.edit(mute=False); await ctx.send(f"🔊 {m} in VC entmutet.")
+    @commands.hybrid_command(name="vcunmute", description="Entmutet das Mikrofon eines Nutzers im Sprachkanal.")
+    @commands.has_permissions(mute_members=True)
+    async def vcunmute(self, ctx, member: discord.Member):
+        await member.edit(mute=False)
+        await ctx.send(f"🔊 {member.name} im Voice entmutet.")
 
 async def setup(bot):
     await bot.add_cog(Vcunmute(bot))

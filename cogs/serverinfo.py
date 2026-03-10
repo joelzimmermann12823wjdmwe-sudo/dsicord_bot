@@ -1,14 +1,17 @@
 import discord
 from discord.ext import commands
 import datetime
-import asyncio
 
 class Serverinfo(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.hybrid_command(name="serverinfo")
-    async def serverinfo(self, ctx): g=ctx.guild; e=discord.Embed(title=g.name); e.add_field(name="Member", value=g.member_count); await ctx.send(embed=e)
+    @commands.hybrid_command(name="serverinfo", description="Zeigt nützliche Statistiken und Infos über diesen Server.")
+    async def serverinfo(self, ctx):
+        g = ctx.guild
+        e = discord.Embed(title=f"Server Info: {g.name}", color=0x00ffff)
+        e.add_field(name="Mitglieder", value=g.member_count)
+        await ctx.send(embed=e)
 
 async def setup(bot):
     await bot.add_cog(Serverinfo(bot))
