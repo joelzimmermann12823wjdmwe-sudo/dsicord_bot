@@ -3,6 +3,8 @@ from discord.ext import commands
 import os
 import traceback
 import aiohttp
+import asyncio
+import time
 from dotenv import load_dotenv
 from supabase import create_client, Client
 from flask import Flask
@@ -103,14 +105,38 @@ class NeonBot(commands.Bot):
         except Exception as e:
             print(f"❌ Webhook-Fehler: {e}")
 
-if __name__ == "__main__":
+async def main():
     # Flask in einem separaten Thread starten
     Thread(target=run_flask).start()
     
-    # Bot starten
     bot = NeonBot()
     token = os.getenv("DISCORD_TOKEN")
-    if token:
-        bot.run(token)
-    else:
+    
+    if not token:
         print("❌ Kein DISCORD_TOKEN in der .env gefunden!")
+        return
+
+    # Retry-Logik für den Login (gegen Error 429 / 1015)
+    max_retries = 10
+    retry_delay = 60  # Warte 60 Sekunden bei Rate Limit
+
+    for attempt in range(max_retries):
+        try:
+            await bot.start(token)
+            break 
+        except discord.errors.HTTPException as e:
+            if e.status == 429:
+                print(f"⚠️ Rate Limited (429/1015). Versuch {attempt+1}/{max_retries}. Warte {retry_delay}s...")
+                await asyncio.sleep(retry_delay)
+            else:
+                print(f"❌ Unbekannter HTTP Fehler: {e}")
+                break
+        except Exception as e:
+            print(f"❌ Kritischer Fehler beim Bot-Start: {e}")
+            break
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("Bot wurde manuell beendet.")
