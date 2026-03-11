@@ -26,9 +26,7 @@ def home():
     return "Neon Bot ist online und aktiv!"
 
 def run_flask():
-    # Render nutzt Port 10000
     try:
-        # Port 10000 ist Standard für Render
         port = int(os.environ.get("PORT", 10000))
         app.run(host='0.0.0.0', port=port)
     except Exception as e:
@@ -103,45 +101,49 @@ class NeonBot(commands.Bot):
             print(f"❌ Webhook-Fehler: {e}")
 
 async def start_bot_logic():
-    # Flask in einem Hintergrund-Thread starten, damit Render "Live" sieht
+    # Flask Webserver starten
     flask_thread = Thread(target=run_flask, daemon=True)
     flask_thread.start()
-    print("🌐 Flask-Webserver für Render gestartet.")
+    print("🌐 Flask-Webserver gestartet.")
+    
+    # Kurz warten, damit der Server bereit ist
+    await asyncio.sleep(5)
     
     token = os.getenv("DISCORD_TOKEN")
     if not token:
-        print("❌ KRITISCH: Kein DISCORD_TOKEN in der .env gefunden!")
+        print("❌ KRITISCH: Kein DISCORD_TOKEN gefunden!")
         return
 
+    bot = NeonBot()
+    
     max_retries = 50
-    retry_delay = 60 
+    retry_delay = 60
 
     for attempt in range(max_retries):
-        bot = NeonBot() # Erstelle Instanz pro Versuch für sauberen Status
         try:
-            print(f"⏳ Verbindungsversuch {attempt+1}/{max_retries} zu Discord...")
+            print(f"⏳ Verbindungsversuch {attempt+1}/{max_retries}...")
+            # Wir nutzen start() statt run(), um mehr Kontrolle über die Loop zu haben
             await bot.start(token)
         except discord.errors.HTTPException as e:
             if e.status == 429:
-                print(f"⚠️ Cloudflare Rate Limit (429/1015). Discord blockiert Render aktuell noch. Warte {retry_delay}s...")
-            elif e.status == 401:
-                print("❌ KRITISCH: Discord Token ist ungültig (401)!")
-                break
+                print(f"⚠️ Rate Limit (429). Warte {retry_delay}s...")
+                await bot.close()
+                await asyncio.sleep(retry_delay)
             else:
                 print(f"❌ HTTP Fehler {e.status}: {e}")
-            
-            await bot.close()
-            await asyncio.sleep(retry_delay)
-        except Exception as e:
-            print(f"❌ Unerwarteter Fehler beim Start: {e}")
-            await bot.close()
-            await asyncio.sleep(retry_delay)
-        finally:
-            if not bot.is_closed():
                 await bot.close()
+                break
+        except Exception as e:
+            print(f"❌ Fehler: {e}")
+            await bot.close()
+            await asyncio.sleep(10)
+        
+        # Falls die Loop stoppt, aber nicht wegen eines Fehlers, kurz warten
+        print("🔄 Verbindung verloren/beendet. Neustart wird vorbereitet...")
+        await asyncio.sleep(5)
 
 if __name__ == "__main__":
     try:
         asyncio.run(start_bot_logic())
     except KeyboardInterrupt:
-        print("Bot manuell gestoppt.")
+        print("Beendet.")
