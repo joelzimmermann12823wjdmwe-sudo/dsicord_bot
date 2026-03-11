@@ -28,7 +28,9 @@ def home():
 def run_flask():
     # Render nutzt Port 10000
     try:
-        app.run(host='0.0.0.0', port=10000)
+        # Port 10000 ist Standard für Render
+        port = int(os.environ.get("PORT", 10000))
+        app.run(host='0.0.0.0', port=port)
     except Exception as e:
         print(f"⚠️ Flask-Server Fehler: {e}")
 
@@ -54,11 +56,15 @@ class NeonBot(commands.Bot):
                     print(f'❌ Fehler beim Laden von {filename}: {e}')
 
     async def on_ready(self):
-        print(f'🚀 ERFOLGREICH: Eingeloggt als {self.user} (ID: {self.user.id})')
+        print(f"✅ ERFOLGREICH: Eingeloggt als {self.user} (ID: {self.user.id})")
         if self.db:
             print("🗄️ Supabase-Datenbank verbunden.")
-        await self.tree.sync()
-        print("🔃 Slash Commands synchronisiert.")
+        
+        try:
+            await self.tree.sync()
+            print("🔃 Slash Commands synchronisiert.")
+        except Exception as e:
+            print(f"⚠️ Fehler beim Synchronisieren der Commands: {e}")
 
     async def on_command_error(self, ctx, error):
         """Status-Monitor: Sendet Fehlerberichte via Webhook"""
@@ -102,33 +108,37 @@ async def start_bot_logic():
     flask_thread.start()
     print("🌐 Flask-Webserver für Render gestartet.")
     
-    bot = NeonBot()
     token = os.getenv("DISCORD_TOKEN")
-    
     if not token:
         print("❌ KRITISCH: Kein DISCORD_TOKEN in der .env gefunden!")
         return
 
-    max_retries = 20
+    max_retries = 50
     retry_delay = 60 
 
     for attempt in range(max_retries):
+        bot = NeonBot() # Erstelle Instanz pro Versuch für sauberen Status
         try:
-            print(f"⏳ Verbindungsversuch {attempt+1} zu Discord...")
+            print(f"⏳ Verbindungsversuch {attempt+1}/{max_retries} zu Discord...")
             await bot.start(token)
-            break 
         except discord.errors.HTTPException as e:
             if e.status == 429:
-                print(f"⚠️ Cloudflare Rate Limit (429). Discord blockiert Render aktuell. Warte {retry_delay}s vor Neustart...")
-                # Wir schließen den Bot-Client sauber vor dem Retry
-                await bot.close()
-                await asyncio.sleep(retry_delay)
+                print(f"⚠️ Cloudflare Rate Limit (429/1015). Discord blockiert Render aktuell noch. Warte {retry_delay}s...")
+            elif e.status == 401:
+                print("❌ KRITISCH: Discord Token ist ungültig (401)!")
+                break
             else:
                 print(f"❌ HTTP Fehler {e.status}: {e}")
-                break
+            
+            await bot.close()
+            await asyncio.sleep(retry_delay)
         except Exception as e:
             print(f"❌ Unerwarteter Fehler beim Start: {e}")
-            break
+            await bot.close()
+            await asyncio.sleep(retry_delay)
+        finally:
+            if not bot.is_closed():
+                await bot.close()
 
 if __name__ == "__main__":
     try:
