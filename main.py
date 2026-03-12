@@ -1,8 +1,11 @@
 ﻿import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 import os
 import traceback
 import aiohttp
+import asyncio
+import datetime
+import time
 from dotenv import load_dotenv
 from supabase import create_client, Client
 from flask import Flask
@@ -27,7 +30,6 @@ def run_flask():
     """Startet den Webserver auf dem von Render zugewiesenen Port"""
     try:
         port = int(os.environ.get("PORT", 10000))
-        # use_reloader=False ist extrem wichtig, damit Flask den Bot nicht doppelt startet!
         app.run(host='0.0.0.0', port=port, use_reloader=False)
     except Exception as e:
         print(f"⚠️ Flask-Fehler: {e}")
@@ -35,18 +37,17 @@ def run_flask():
 class NeonBot(commands.Bot):
     def __init__(self):
         intents = discord.Intents.all()
-        # help_command=None, da wir unser eigenes /help in der help.py machen
         super().__init__(command_prefix="!", intents=intents, help_command=None)
         self.db = supabase 
+        self.active_incidents = {} # {incident_type: {msg_id, start_time, last_status, channel_id}}
 
     async def setup_hook(self):
-        """Lädt automatisch alle Cogs aus dem /cogs Ordner"""
+        """Lädt Cogs und startet den Monitor-Task"""
+        # Cogs laden
         cog_path = './cogs'
         if not os.path.exists(cog_path):
             os.makedirs(cog_path)
-            print("📁 Ordner /cogs wurde erstellt.")
-            
-        # Lade alle .py Dateien im cogs Ordner
+        
         for filename in os.listdir(cog_path):
             if filename.endswith('.py'):
                 try:
@@ -55,102 +56,147 @@ class NeonBot(commands.Bot):
                 except Exception as e:
                     print(f'❌ Fehler beim Laden von {filename}: {e}')
 
-        # --- GLOBALER SLASH-COMMAND FEHLER-HANDLER ---
-        # Dies behebt den Bug, dass Fehler bei / Commands nicht geloggt wurden
+        # Slash-Command Fehler-Handler
         self.tree.on_error = self.on_app_command_error
-
-    async def on_ready(self):
-        print(f"✅ ERFOLGREICH: {self.user} ist jetzt online!")
-        if self.db:
-            print("🗄️ Supabase-Datenbank verbunden.")
         
-        try:
-            # Synchronisiert die Slash-Commands mit Discord
-            synced = await self.tree.sync()
-            print(f"🔃 {len(synced)} Slash Commands synchronisiert.")
-        except Exception as e:
-            print(f"⚠️ Synchronisierungsfehler: {e}")
+        # Status-Monitor Task starten
+        self.monitor_systems.start()
 
-    async def send_error_webhook(self, error, command_name="Unbekannt", user_mention="Unbekannt"):
-        """Hilfsfunktion: Sendet Fehler an den Discord Webhook"""
-        webhook_url = os.getenv("ERROR_WEBHOOK_URL")
-        admin_role_id = os.getenv("ADMIN_ROLE_ID")
-        
-        if not webhook_url:
+    @tasks.loop(seconds=2.0)
+    async def monitor_systems(self):
+        """Überprüft alle 2 Sekunden die Vitalwerte der Systeme."""
+        channel_id = os.getenv("ERROR_CHANNEL_ID")
+        if not channel_id:
             return
 
-        tb = "".join(traceback.format_exception(type(error), error, error.__traceback__))
-        short_tb = tb if len(tb) < 1000 else tb[:997] + "..."
-
-        embed = discord.Embed(
-            title="🚨 Neon Bot: System-Fehler",
-            description="Ein kritischer Fehler wurde abgefangen.",
-            color=0xff0000,
-            timestamp=discord.utils.utcnow()
-        )
-        
-        embed.add_field(name="📌 Befehl", value=f"`/{command_name}`", inline=True)
-        embed.add_field(name="👤 User", value=user_mention, inline=True)
-        embed.add_field(name="❌ Nachricht", value=f"```py\n{error}```", inline=False)
-        embed.add_field(name="💻 Traceback", value=f"```py\n{short_tb}```", inline=False)
-        
-        embed.set_footer(text="Automatisches Monitoring")
-        content = f"⚠️ <@&{admin_role_id}>" if admin_role_id else "⚠️ Systemfehler"
-
+        # 1. Check Discord API & Latency
         try:
-            async with aiohttp.ClientSession() as session:
-                webhook = discord.Webhook.from_url(webhook_url, session=session)
-                await webhook.send(content=content, embed=embed, username="Neon Status")
-        except Exception as e:
-            print(f"❌ Webhook konnte nicht gesendet werden: {e}")
-
-    # Handler für Prefix-Commands (!help etc)
-    async def on_command_error(self, ctx, error):
-        print(f"⚠️ Prefix-Fehler in {ctx.command}: {error}")
-        await self.send_error_webhook(error, str(ctx.command), ctx.author.mention)
-
-    # Handler für Slash-Commands (/help etc)
-    async def on_app_command_error(self, interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
-        print(f"⚠️ Slash-Fehler in {interaction.command.name if interaction.command else 'Unbekannt'}: {error}")
-        
-        # Dem User eine freundliche Nachricht zeigen
-        try:
-            if interaction.response.is_done():
-                await interaction.followup.send("❌ Es gab einen internen Fehler. Die Entwickler wurden informiert.", ephemeral=True)
-            else:
-                await interaction.response.send_message("❌ Es gab einen internen Fehler. Die Entwickler wurden informiert.", ephemeral=True)
+            latency = self.latency * 1000
+            api_status = "stable" if latency < 250 else "unstable"
+            if latency > 1000 or latency == 0: api_status = "down"
         except:
-            pass # Falls die Interaktion abgelaufen ist
-            
-        # Den Fehler an den Webhook senden
-        await self.send_error_webhook(
-            error, 
-            interaction.command.name if interaction.command else "Unbekannt", 
-            interaction.user.mention
-        )
+            api_status = "down"
+
+        # 2. Check Database Connection (Supabase)
+        db_status = "stable"
+        if self.db:
+            try:
+                # Schneller Test-Query ohne große Last
+                self.db.table("pings").select("*").limit(1).execute()
+            except:
+                db_status = "down"
+        else:
+            db_status = "down"
+
+        # System-Status Management
+        await self.manage_incident("Discord API", api_status, channel_id)
+        await self.manage_incident("Datenbank", db_status, channel_id)
+
+    async def manage_incident(self, system_name, current_status, channel_id):
+        """Verwaltet die Embeds basierend auf dem Status (Rot, Orange, Grün)."""
+        incident_key = system_name
+        data = self.active_incidents.get(incident_key)
+        
+        if current_status == "stable" and not data:
+            return
+
+        channel = self.get_channel(int(channel_id))
+        if not channel:
+            return
+
+        now = datetime.datetime.now()
+
+        # FALL 1: System DOWN (ROT)
+        if current_status == "down" and (not data or data['last_status'] != "down"):
+            embed = discord.Embed(
+                title="🔴 Kritischer Fehler",
+                description=f"**System:** `{system_name}`\n"
+                            f"❗ `[{now.strftime('%H:%M:%S')}]` **Status: Problem erkannt**\n"
+                            f"Es wurde eine schwere Störung im Modul `{system_name}` festgestellt. Der Betrieb ist aktuell unterbrochen.\n\n"
+                            f"🚫 **Priorität:** Hoch",
+                color=0xf04747
+            )
+            await self._update_or_send_incident(incident_key, embed, "down", channel, now)
+
+        # FALL 2: System INSTABIL (ORANGE)
+        elif current_status == "unstable" and (not data or data['last_status'] != "unstable"):
+            embed = discord.Embed(
+                title="🟠 In Bearbeitung",
+                description=f"**System:** `{system_name}`\n"
+                            f"⏳ `[{now.strftime('%H:%M:%S')}]` **Status: Analyse**\n"
+                            f"Das System `{system_name}` zeigt Verzögerungen. Die automatische Fehlerbehebung wurde eingeleitet.\n\n"
+                            f"⚙️ **Status:** Techniker/System-Skripte arbeiten...",
+                color=0xfaa61a
+            )
+            await self._update_or_send_incident(incident_key, embed, "unstable", channel, now)
+
+        # FALL 3: System STABIL (GRÜN)
+        elif current_status == "stable" and data:
+            start_time = data['start_time']
+            duration = now - start_time
+            duration_str = f"{int(duration.total_seconds() // 60)}m {int(duration.total_seconds() % 60)}s"
+
+            embed = discord.Embed(
+                title="🟢 Alles funktioniert wieder",
+                description=f"**System:** `{system_name}`\n"
+                            f"✅ `[{now.strftime('%H:%M:%S')}]` **Status: Behoben**\n"
+                            f"Die Störung im Bereich `{system_name}` wurde erfolgreich identifiziert und korrigiert.\n\n"
+                            f"⏱️ **Ausfallzeit:** {duration_str}",
+                color=0x43b581
+            )
+            try:
+                msg = await channel.fetch_message(data['msg_id'])
+                await msg.edit(embed=embed)
+            except: pass
+            del self.active_incidents[incident_key]
+
+    async self._update_or_send_incident(self, key, embed, status, channel, time_now):
+        """Hilfsfunktion zum Senden oder Editieren von Incident-Nachrichten"""
+        data = self.active_incidents.get(key)
+        if data:
+            try:
+                msg = await channel.fetch_message(data['msg_id'])
+                await msg.edit(embed=embed)
+                self.active_incidents[key].update({'last_status': status})
+            except:
+                msg = await channel.send(embed=embed)
+                self.active_incidents[key].update({'msg_id': msg.id, 'last_status': status})
+        else:
+            msg = await channel.send(embed=embed)
+            self.active_incidents[key] = {
+                'msg_id': msg.id, 'start_time': time_now, 'last_status': status, 
+                'channel_id': str(channel.id)
+            }
+
+    async def on_ready(self):
+        print(f"✅ ERFOLGREICH: {self.user} ist online!")
+        await self.tree.sync()
+
+    async def on_app_command_error(self, interaction: discord.Interaction, error):
+        """Meldet Command-Fehler sofort als Incident (Rot)"""
+        cmd_name = f"Command: {interaction.command.name}" if interaction.command else "Allgemeine API"
+        channel_id = os.getenv("ERROR_CHANNEL_ID")
+        if channel_id:
+            await self.manage_incident(cmd_name, "down", channel_id)
+        
+        # Internes Error-Logging via Webhook bleibt als Backup
+        await self.send_error_webhook(error, cmd_name, interaction.user.mention)
+
+    async def send_error_webhook(self, error, command_name, user_mention):
+        webhook_url = os.getenv("ERROR_WEBHOOK_URL")
+        if not webhook_url: return
+        async with aiohttp.ClientSession() as session:
+            webhook = discord.Webhook.from_url(webhook_url, session=session)
+            embed = discord.Embed(title="🚨 Interner Traceback", description=f"```py\n{error}```", color=0xff0000)
+            await webhook.send(embed=embed, username="Neon Debugger")
 
 def start_bot():
     token = os.getenv("DISCORD_TOKEN")
-    if not token or len(token) < 30:
-        print("❌ KRITISCH: DISCORD_TOKEN fehlt oder ist ungültig!")
-        return
-
-    # Flask in einem separaten Daemon-Thread starten
-    # Daemon bedeutet: Wenn der Bot stoppt, stoppt auch Flask sofort.
+    if not token: return
     t = Thread(target=run_flask, daemon=True)
     t.start()
-    print("🌐 Keep-Alive Server gestartet.")
-
     bot = NeonBot()
-    
-    print("⏳ Versuche Verbindung zu Discord herzustellen...")
-    try:
-        # reconnect=True sorgt dafür, dass discord.py Verbindungsabbrüche (wie 429) selbst managt
-        bot.run(token, reconnect=True)
-    except discord.errors.HTTPException as e:
-        print(f"❌ HTTP Fehler beim Start: {e}")
-    except Exception as e:
-        print(f"❌ Unerwarteter Fehler beim Start: {e}")
+    bot.run(token, reconnect=True)
 
 if __name__ == "__main__":
     start_bot()
