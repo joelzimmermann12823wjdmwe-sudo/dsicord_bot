@@ -150,7 +150,7 @@ class NeonBot(commands.Bot):
             except: pass
             del self.active_incidents[incident_key]
 
-    async self._update_or_send_incident(self, key, embed, status, channel, time_now):
+    async def _update_or_send_incident(self, key, embed, status, channel, time_now):
         """Hilfsfunktion zum Senden oder Editieren von Incident-Nachrichten"""
         data = self.active_incidents.get(key)
         if data:
