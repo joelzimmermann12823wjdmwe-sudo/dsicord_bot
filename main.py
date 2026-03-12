@@ -3,8 +3,6 @@ from discord.ext import commands
 import os
 import traceback
 import aiohttp
-import asyncio
-import time
 from dotenv import load_dotenv
 from supabase import create_client, Client
 from flask import Flask
@@ -23,18 +21,21 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "Neon Bot ist online und aktiv!"
+    return "🟢 Neon Bot System ist online und aktiv!"
 
 def run_flask():
+    """Startet den Webserver auf dem von Render zugewiesenen Port"""
     try:
         port = int(os.environ.get("PORT", 10000))
-        app.run(host='0.0.0.0', port=port)
+        # use_reloader=False ist extrem wichtig, damit Flask den Bot nicht doppelt startet!
+        app.run(host='0.0.0.0', port=port, use_reloader=False)
     except Exception as e:
-        print(f"⚠️ Flask-Server Fehler: {e}")
+        print(f"⚠️ Flask-Fehler: {e}")
 
 class NeonBot(commands.Bot):
     def __init__(self):
         intents = discord.Intents.all()
+        # help_command=None, da wir unser eigenes /help in der help.py machen
         super().__init__(command_prefix="!", intents=intents, help_command=None)
         self.db = supabase 
 
@@ -45,32 +46,36 @@ class NeonBot(commands.Bot):
             os.makedirs(cog_path)
             print("📁 Ordner /cogs wurde erstellt.")
             
+        # Lade alle .py Dateien im cogs Ordner
         for filename in os.listdir(cog_path):
             if filename.endswith('.py'):
                 try:
                     await self.load_extension(f'cogs.{filename[:-3]}')
-                    print(f'✅ Cog geladen: {filename}')
+                    print(f'✅ Modul geladen: {filename}')
                 except Exception as e:
                     print(f'❌ Fehler beim Laden von {filename}: {e}')
 
+        # --- GLOBALER SLASH-COMMAND FEHLER-HANDLER ---
+        # Dies behebt den Bug, dass Fehler bei / Commands nicht geloggt wurden
+        self.tree.on_error = self.on_app_command_error
+
     async def on_ready(self):
-        print(f"✅ ERFOLGREICH: Eingeloggt als {self.user} (ID: {self.user.id})")
+        print(f"✅ ERFOLGREICH: {self.user} ist jetzt online!")
         if self.db:
             print("🗄️ Supabase-Datenbank verbunden.")
         
         try:
-            await self.tree.sync()
-            print("🔃 Slash Commands synchronisiert.")
+            # Synchronisiert die Slash-Commands mit Discord
+            synced = await self.tree.sync()
+            print(f"🔃 {len(synced)} Slash Commands synchronisiert.")
         except Exception as e:
-            print(f"⚠️ Fehler beim Synchronisieren der Commands: {e}")
+            print(f"⚠️ Synchronisierungsfehler: {e}")
 
-    async def on_command_error(self, ctx, error):
-        """Status-Monitor: Sendet Fehlerberichte via Webhook"""
+    async def send_error_webhook(self, error, command_name="Unbekannt", user_mention="Unbekannt"):
+        """Hilfsfunktion: Sendet Fehler an den Discord Webhook"""
         webhook_url = os.getenv("ERROR_WEBHOOK_URL")
         admin_role_id = os.getenv("ADMIN_ROLE_ID")
         
-        print(f"⚠️ Fehler in Befehl {ctx.command}: {error}")
-
         if not webhook_url:
             return
 
@@ -79,71 +84,73 @@ class NeonBot(commands.Bot):
 
         embed = discord.Embed(
             title="🚨 Neon Bot: System-Fehler",
-            description="Ein Fehler ist während der Ausführung eines Befehls aufgetreten.",
+            description="Ein kritischer Fehler wurde abgefangen.",
             color=0xff0000,
             timestamp=discord.utils.utcnow()
         )
         
-        cmd_name = f"/{ctx.command}" if ctx.command else "Unbekannt"
-        embed.add_field(name="📌 Befehl", value=f"`{cmd_name}`", inline=True)
-        embed.add_field(name="👤 User", value=f"{ctx.author.mention} ({ctx.author.id})", inline=True)
+        embed.add_field(name="📌 Befehl", value=f"`/{command_name}`", inline=True)
+        embed.add_field(name="👤 User", value=user_mention, inline=True)
         embed.add_field(name="❌ Nachricht", value=f"```py\n{error}```", inline=False)
         embed.add_field(name="💻 Traceback", value=f"```py\n{short_tb}```", inline=False)
         
-        embed.set_footer(text="Automatisches Log-System")
-        content = f"⚠️ <@&{admin_role_id}> Ein Fehler wurde gemeldet!" if admin_role_id else "⚠️ Ein Fehler wurde gemeldet!"
+        embed.set_footer(text="Automatisches Monitoring")
+        content = f"⚠️ <@&{admin_role_id}>" if admin_role_id else "⚠️ Systemfehler"
 
         try:
             async with aiohttp.ClientSession() as session:
                 webhook = discord.Webhook.from_url(webhook_url, session=session)
-                await webhook.send(content=content, embed=embed, username="Neon Status Wächter")
+                await webhook.send(content=content, embed=embed, username="Neon Status")
         except Exception as e:
-            print(f"❌ Webhook-Fehler: {e}")
+            print(f"❌ Webhook konnte nicht gesendet werden: {e}")
 
-async def start_bot_logic():
-    # Flask Webserver starten
-    flask_thread = Thread(target=run_flask, daemon=True)
-    flask_thread.start()
-    print("🌐 Flask-Webserver gestartet.")
-    
-    # Kurz warten, damit der Server bereit ist
-    await asyncio.sleep(5)
-    
+    # Handler für Prefix-Commands (!help etc)
+    async def on_command_error(self, ctx, error):
+        print(f"⚠️ Prefix-Fehler in {ctx.command}: {error}")
+        await self.send_error_webhook(error, str(ctx.command), ctx.author.mention)
+
+    # Handler für Slash-Commands (/help etc)
+    async def on_app_command_error(self, interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
+        print(f"⚠️ Slash-Fehler in {interaction.command.name if interaction.command else 'Unbekannt'}: {error}")
+        
+        # Dem User eine freundliche Nachricht zeigen
+        try:
+            if interaction.response.is_done():
+                await interaction.followup.send("❌ Es gab einen internen Fehler. Die Entwickler wurden informiert.", ephemeral=True)
+            else:
+                await interaction.response.send_message("❌ Es gab einen internen Fehler. Die Entwickler wurden informiert.", ephemeral=True)
+        except:
+            pass # Falls die Interaktion abgelaufen ist
+            
+        # Den Fehler an den Webhook senden
+        await self.send_error_webhook(
+            error, 
+            interaction.command.name if interaction.command else "Unbekannt", 
+            interaction.user.mention
+        )
+
+def start_bot():
     token = os.getenv("DISCORD_TOKEN")
-    if not token:
-        print("❌ KRITISCH: Kein DISCORD_TOKEN gefunden!")
+    if not token or len(token) < 30:
+        print("❌ KRITISCH: DISCORD_TOKEN fehlt oder ist ungültig!")
         return
+
+    # Flask in einem separaten Daemon-Thread starten
+    # Daemon bedeutet: Wenn der Bot stoppt, stoppt auch Flask sofort.
+    t = Thread(target=run_flask, daemon=True)
+    t.start()
+    print("🌐 Keep-Alive Server gestartet.")
 
     bot = NeonBot()
     
-    max_retries = 50
-    retry_delay = 60
-
-    for attempt in range(max_retries):
-        try:
-            print(f"⏳ Verbindungsversuch {attempt+1}/{max_retries}...")
-            # Wir nutzen start() statt run(), um mehr Kontrolle über die Loop zu haben
-            await bot.start(token)
-        except discord.errors.HTTPException as e:
-            if e.status == 429:
-                print(f"⚠️ Rate Limit (429). Warte {retry_delay}s...")
-                await bot.close()
-                await asyncio.sleep(retry_delay)
-            else:
-                print(f"❌ HTTP Fehler {e.status}: {e}")
-                await bot.close()
-                break
-        except Exception as e:
-            print(f"❌ Fehler: {e}")
-            await bot.close()
-            await asyncio.sleep(10)
-        
-        # Falls die Loop stoppt, aber nicht wegen eines Fehlers, kurz warten
-        print("🔄 Verbindung verloren/beendet. Neustart wird vorbereitet...")
-        await asyncio.sleep(5)
+    print("⏳ Versuche Verbindung zu Discord herzustellen...")
+    try:
+        # reconnect=True sorgt dafür, dass discord.py Verbindungsabbrüche (wie 429) selbst managt
+        bot.run(token, reconnect=True)
+    except discord.errors.HTTPException as e:
+        print(f"❌ HTTP Fehler beim Start: {e}")
+    except Exception as e:
+        print(f"❌ Unerwarteter Fehler beim Start: {e}")
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(start_bot_logic())
-    except KeyboardInterrupt:
-        print("Beendet.")
+    start_bot()
