@@ -1,5 +1,6 @@
-﻿.env
-__pycache__/
-*.pyc
-data/guild_configs.json
+﻿__pycache__/
+*.py[cod]
+*$py.class
+.env
 venv/
+env/

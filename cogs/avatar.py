@@ -1,15 +1,16 @@
-import discord
+﻿import discord
 from discord.ext import commands
-import datetime
 
 class Avatar(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.hybrid_command(name="avatar", description="Zeigt das Profilbild (Avatar) eines Nutzers in groß.")
-    async def avatar(self, ctx, member: discord.Member=None):
+    @commands.hybrid_command(name="avatar", description="Zeigt das Profilbild eines Nutzers.")
+    async def avatar(self, ctx, member: discord.Member = None):
         member = member or ctx.author
-        await ctx.send(member.display_avatar.url)
+        embed = discord.Embed(title=f"Avatar von {member.name}", color=discord.Color.purple())
+        embed.set_image(url=member.display_avatar.url)
+        await ctx.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(Avatar(bot))

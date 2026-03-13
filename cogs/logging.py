@@ -1,16 +1,14 @@
-import discord
+﻿import discord
 from discord.ext import commands
-import datetime
 
 class Logging(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.Cog.listener()
-    async def on_message_delete(self, m):
-        ch = discord.utils.get(m.guild.channels, name="logs")
-        if ch:
-            await ch.send(f"🗑️ Gelöscht in {m.channel.mention}: {m.content} von {m.author}")
+    @commands.hybrid_command(name='logging', description='Konfiguration für das logging-Modul.')
+    @commands.has_permissions(administrator=True)
+    async def cmd_logging(self, ctx):
+        await ctx.send(f'⚙️ Das **logging** Setup-Menü wird hier zukünftig geöffnet. (Verknüpfung mit Datenbank steht aus).')
 
 async def setup(bot):
     await bot.add_cog(Logging(bot))

@@ -1,5 +1,4 @@
-discord.py[voice]
+﻿discord.py>=2.3.0
+python-dotenv>=1.0.0
+supabase>=2.3.0
 flask
-python-dotenv
-supabase
-requests

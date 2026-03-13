@@ -1,17 +1,24 @@
-import discord
+﻿import discord
 from discord.ext import commands
-import datetime
 
-class Serverinfo(commands.Cog):
+class ServerInfo(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.hybrid_command(name="serverinfo", description="Zeigt nützliche Statistiken und Infos über diesen Server.")
+    @commands.hybrid_command(name="serverinfo", description="Zeigt Informationen über diesen Server an.")
     async def serverinfo(self, ctx):
-        g = ctx.guild
-        e = discord.Embed(title=f"Server Info: {g.name}", color=0x00ffff)
-        e.add_field(name="Mitglieder", value=g.member_count)
-        await ctx.send(embed=e)
+        guild = ctx.guild
+        
+        embed = discord.Embed(title=f"Serverinfo - {guild.name}", color=discord.Color.green())
+        if guild.icon:
+            embed.set_thumbnail(url=guild.icon.url)
+        embed.add_field(name="Server ID", value=guild.id, inline=True)
+        embed.add_field(name="Besitzer", value=guild.owner.mention, inline=True)
+        embed.add_field(name="Mitglieder", value=guild.member_count, inline=True)
+        embed.add_field(name="Rollenanzahl", value=len(guild.roles), inline=True)
+        embed.add_field(name="Erstellt am", value=discord.utils.format_dt(guild.created_at, "F"), inline=False)
+        
+        await ctx.send(embed=embed)
 
 async def setup(bot):
-    await bot.add_cog(Serverinfo(bot))
+    await bot.add_cog(ServerInfo(bot))
