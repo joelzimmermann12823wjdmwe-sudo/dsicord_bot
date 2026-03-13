@@ -4,53 +4,45 @@ import os
 from dotenv import load_dotenv
 from flask import Flask
 from threading import Thread
+from supabase import create_client, Client
 
-# --- WEB SERVER FÜR RENDER ---
+# Webserver für Render
 app = Flask('')
-
 @app.route('/')
-def home():
-    return "Neon Bot ist online!"
+def home(): return "Neon Bot ist online!"
 
 def run_webserver():
-    # Render nutzt standardmäßig Port 10000 oder gibt ihn über die Umgebungsvariable PORT vor
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
 
 def keep_alive():
-    t = Thread(target=run_webserver)
-    t.start()
+    Thread(target=run_webserver).start()
 
-# --- BOT LOGIK ---
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
+SUPA_URL = os.getenv("SUPABASE_URL")
+SUPA_KEY = os.getenv("SUPABASE_KEY")
 
-class MeinBot(commands.Bot):
+class NeonBot(commands.Bot):
     def __init__(self):
         intents = discord.Intents.all()
-        super().__init__(command_prefix="!", intents=intents)
+        super().__init__(command_prefix="!", intents=intents, help_command=None)
+        # Supabase Client initialisieren
+        self.supabase: Client = create_client(SUPA_URL, SUPA_KEY)
 
     async def setup_hook(self):
-        # Cogs laden
         for filename in os.listdir('./cogs'):
             if filename.endswith('.py'):
                 await self.load_extension(f'cogs.{filename[:-3]}')
-                print(f"Modul geladen: {filename}")
         
         await self.tree.sync()
-        print("Slash-Commands synchronisiert.")
+        print("✅ Befehle synchronisiert & Supabase verbunden.")
 
     async def on_ready(self):
-        print(f'Eingeloggt als {self.user}')
+        print(f'--- {self.user.name} ist bereit ---')
 
-bot = MeinBot()
+bot = NeonBot()
 
 if __name__ == '__main__':
-    # Starte den Webserver
     keep_alive()
-    
-    # Starte den Bot
-    if TOKEN:
-        bot.run(TOKEN)
-    else:
-        print("KEIN TOKEN GEFUNDEN!")
+    bot.run(TOKEN)
