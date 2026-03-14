@@ -6,46 +6,43 @@ import requests
 import warnings
 from flask import Flask, render_template, redirect, session, url_for, request
 from threading import Thread
+from dotenv import load_dotenv
 
-# Unterdrückt Warnungen
+# Unterdrückt veraltete Warnungen
 warnings.filterwarnings("ignore", category=DeprecationWarning) 
 
-from postgrest import SyncPostgrestClient
-from gotrue import SyncGoTrueClient
-
-# --- .ENV MANUELL EINLESEN ---
-env_vars = {}
+# Falls du diese Pakete für Supabase nutzt:
 try:
-    with open(".env", "r", encoding="utf-8-sig") as f:
-        for line in f:
-            line = line.strip()
-            if "=" in line and not line.startswith("#"):
-                key, value = line.split("=", 1)
-                env_vars[key.strip()] = value.strip().strip('"').strip("'")
-except Exception as e:
-    print(f"❌ Fehler beim Lesen der .env: {e}")
+    from postgrest import SyncPostgrestClient
+except ImportError:
+    SyncPostgrestClient = None
 
-TOKEN = env_vars.get("DISCORD_TOKEN")
-SUPA_URL = env_vars.get("SUPABASE_URL")
-SUPA_KEY = env_vars.get("SUPABASE_KEY")
-CLIENT_ID = env_vars.get("DISCORD_CLIENT_ID")
-CLIENT_SECRET = env_vars.get("DISCORD_CLIENT_SECRET")
-REDIRECT_URI = env_vars.get("DISCORD_REDIRECT_URI")
+# --- KONFIGURATION LADEN ---
+# load_dotenv sucht nach einer .env Datei. Wenn keine da ist (wie auf Render), 
+# wird dieser Schritt einfach übersprungen, ohne einen Fehler zu werfen.
+load_dotenv()
+
+TOKEN = os.getenv("DISCORD_TOKEN")
+SUPA_URL = os.getenv("SUPABASE_URL")
+SUPA_KEY = os.getenv("SUPABASE_KEY")
+CLIENT_ID = os.getenv("DISCORD_CLIENT_ID")
+CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
+REDIRECT_URI = os.getenv("REDIRECT_URI") # Auf Render in Env setzen!
 
 # --- FLASK DASHBOARD ---
 base_dir = os.path.dirname(os.path.abspath(__file__))
 html_dir = os.path.join(base_dir, 'html')
+
 app = Flask(__name__, template_folder=html_dir)
-app.secret_key = env_vars.get("FLASK_SECRET_KEY", "neon_secret_888")
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "neon_secret_888")
 
 @app.route('/')
 def home():
+    # Wir nutzen 'home.html' wie in deinem Ordner gesehen
     return render_template('home.html', user=session.get('user'))
 
 @app.route('/login')
 def login():
-    # Wir bauen den Link dynamisch aus deinen Env-Variablen zusammen
-    # Scopes: identify (für User-Daten), guilds (für Serverliste), bot & applications.commands (für Einladung)
     scopes = "identify+guilds+bot+applications.commands"
     auth_url = (
         f"https://discord.com/oauth2/authorize?client_id={CLIENT_ID}"
@@ -54,40 +51,82 @@ def login():
         f"&scope={scopes}"
     )
     return redirect(auth_url)
-# ... (Rest der Flask-Routen bleibt gleich) ...
 
-# --- NEON BOT MIT SLASH COMMAND FOKUS ---
+@app.route('/callback')
+def callback():
+    code = request.args.get('code')
+    if not code:
+        return redirect(url_for('home'))
+    
+    data = {
+        'client_id': CLIENT_ID,
+        'client_secret': CLIENT_SECRET,
+        'grant_type': 'authorization_code',
+        'code': code,
+        'redirect_uri': REDIRECT_URI
+    }
+    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+    
+    r = requests.post("https://discord.com/api/v10/oauth2/token", data=data, headers=headers).json()
+    access_token = r.get('access_token')
+    
+    if access_token:
+        user_data = requests.get("https://discord.com/api/v10/users/@me", headers={'Authorization': f"Bearer {access_token}"}).json()
+        session['user'] = user_data
+        return redirect(url_for('wartung'))
+    
+    return redirect(url_for('home'))
+
+@app.route('/wartung')
+def wartung():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    return render_template('wartung.html', user=session['user'])
+
+# --- NEON BOT KLASSE ---
 class NeonBot(commands.Bot):
     def __init__(self):
-        # Intents für den Bot
         intents = discord.Intents.all()
         super().__init__(command_prefix="!", intents=intents)
         
-        # Datenbank Verbindung
-        if SUPA_URL and SUPA_KEY:
+        # Datenbank-Client initialisieren
+        if SUPA_URL and SUPA_KEY and SyncPostgrestClient:
             self.db = SyncPostgrestClient(f"{SUPA_URL}/rest/v1", headers={
                 "apikey": SUPA_KEY, "Authorization": f"Bearer {SUPA_KEY}"
             })
+            print("✅ Datenbank-Verbindung konfiguriert.")
 
     async def setup_hook(self):
-        # Cogs laden und Bestätigung ausgeben
-        if os.path.exists('./cogs'):
-            for filename in os.listdir('./cogs'):
+        # Cogs automatisch laden
+        cogs_path = os.path.join(base_dir, 'cogs')
+        if os.path.exists(cogs_path):
+            for filename in os.listdir(cogs_path):
                 if filename.endswith('.py'):
-                    await self.load_extension(f'cogs.{filename[:-3]}')
-                    print(f"Geladen: {filename}")
+                    try:
+                        await self.load_extension(f'cogs.{filename[:-3]}')
+                        print(f"Geladen: {filename}")
+                    except Exception as e:
+                        print(f"❌ Fehler beim Laden von {filename}: {e}")
 
-        # Globales Synchronisieren der Slash-Commands
-        # Das sorgt dafür, dass die Commands überall verfügbar sind (keine Duplikate)
+        # Slash Commands global synchronisieren
         await self.tree.sync()
-        print("✅ Alle Slash-Commands wurden global synchronisiert.")
+        print("✅ Slash-Commands global synchronisiert.")
 
     async def on_ready(self):
-        print(f'⚡ {self.user.name} ist jetzt online!')
+        print(f'⚡ {self.user.name} ist online und bereit!')
 
 bot = NeonBot()
 
-# --- START ---
+# --- START FUNKTION ---
+def run_flask():
+    # Port 10000 ist Standard für Render
+    app.run(host='0.0.0.0', port=10000, use_reloader=False)
+
 if __name__ == '__main__':
-    Thread(target=lambda: app.run(host='0.0.0.0', port=10000, use_reloader=False), daemon=True).start()
-    bot.run(TOKEN)
+    if not TOKEN:
+        print("❌ FEHLER: Kein DISCORD_TOKEN gefunden. Bot kann nicht starten.")
+    else:
+        # Flask in einem eigenen Thread starten
+        Thread(target=run_flask, daemon=True).start()
+        # Bot starten
+        bot.run(TOKEN)
