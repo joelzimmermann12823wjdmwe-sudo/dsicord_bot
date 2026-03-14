@@ -7,6 +7,7 @@ import warnings
 from flask import Flask, render_template, redirect, session, url_for, request
 from threading import Thread
 from dotenv import load_dotenv
+from urllib.parse import urlencode
 
 # Unterdrückt veraltete Warnungen
 warnings.filterwarnings("ignore", category=DeprecationWarning) 
@@ -43,13 +44,19 @@ def home():
 
 @app.route('/login')
 def login():
-    scopes = "identify+guilds+bot+applications.commands"
-    auth_url = (
-        f"https://discord.com/oauth2/authorize?client_id={CLIENT_ID}"
-        f"&permissions=8&response_type=code"
-        f"&redirect_uri={REDIRECT_URI}"
-        f"&scope={scopes}"
-    )
+    # Wir bauen die Parameter sauber als Dictionary auf
+    params = {
+        'client_id': CLIENT_ID,
+        'redirect_uri': REDIRECT_URI,
+        'response_type': 'code',
+        'scope': 'identify guilds bot applications.commands',
+        'permissions': '8'
+    }
+    
+    # urlencode macht aus dem Dictionary einen perfekt formatierten String
+    auth_url = f"https://discord.com/api/oauth2/authorize?{urlencode(params)}"
+    
+    print(f"DEBUG: Redirect URI ist: {REDIRECT_URI}") # Das sehen wir dann in den Render Logs
     return redirect(auth_url)
 
 @app.route('/callback')
