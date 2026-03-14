@@ -44,9 +44,16 @@ def home():
 
 @app.route('/login')
 def login():
-    auth_url = f"https://discord.com/oauth2/authorize?client_id={CLIENT_ID}&permissions=8&response_type=code&redirect_uri={REDIRECT_URI}&scope=identify+guilds"
+    # Wir bauen den Link dynamisch aus deinen Env-Variablen zusammen
+    # Scopes: identify (für User-Daten), guilds (für Serverliste), bot & applications.commands (für Einladung)
+    scopes = "identify+guilds+bot+applications.commands"
+    auth_url = (
+        f"https://discord.com/oauth2/authorize?client_id={CLIENT_ID}"
+        f"&permissions=8&response_type=code"
+        f"&redirect_uri={REDIRECT_URI}"
+        f"&scope={scopes}"
+    )
     return redirect(auth_url)
-
 # ... (Rest der Flask-Routen bleibt gleich) ...
 
 # --- NEON BOT MIT SLASH COMMAND FOKUS ---
