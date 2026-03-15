@@ -344,7 +344,7 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--t1);cursor:n
     <span id="sideETA">ETA::BERECHNE</span>
   </div>
   <div class="side side-r">
-    <span>BOT::V1.0.0</span>
+    <span>BOT::V2.4.1</span>
     <div class="side-ln"></div>
     <span>NODE::ACTIVE</span>
     <div class="side-ln"></div>
@@ -373,7 +373,7 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--t1);cursor:n
  
   <!-- COUNTDOWN -->
   <div class="eta-row">
-    <div class="eta-block"><div class="eta-num" id="etaH">--</div><div class="eta-lbl">Stunden</div></div>
+    <div class="eta-block"><div class="eta-num" id="etaH">-- --</div><div class="eta-lbl">Tage / Std</div></div>
     <div class="eta-colon">:</div>
     <div class="eta-block"><div class="eta-num" id="etaM">--</div><div class="eta-lbl">Minuten</div></div>
     <div class="eta-colon">:</div>
@@ -385,19 +385,19 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--t1);cursor:n
   <div class="prog-section">
     <div class="prog-header">
       <span class="prog-label">DEPLOYMENT PROGRESS</span>
-      <span class="prog-pct" id="progPct">5%</span>
+      <span class="prog-pct" id="progPct">73%</span>
     </div>
     <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
   </div>
  
   <!-- STATUS GRID -->
   <div class="status-grid">
-    <div class="sc"><div class="sc-lbl">API</div><div class="sc-val" style="color:var(--g)">Online</div><div class="dot d-g"></div></div>
+    <div class="sc"><div class="sc-lbl">API</div><div class="sc-val" style="color:var(--r2)">OFFLINE</div><div class="dot d-r"></div></div>
     <div class="sc"><div class="sc-lbl">DATABASE</div><div class="sc-val" style="color:#f0b429">MIGRATING</div><div class="dot d-y"></div></div>
     <div class="sc"><div class="sc-lbl">CDN</div><div class="sc-val" style="color:var(--g)">ONLINE</div><div class="dot d-g"></div></div>
-    <div class="sc"><div class="sc-lbl">BOT CORE</div><div class="sc-val" style="color:hsl(114, 70%, 40%)">UPDATING</div><div class="dot d-g"></div></div>
+    <div class="sc"><div class="sc-lbl">BOT CORE</div><div class="sc-val" style="color:#f0b429">UPDATING</div><div class="dot d-y"></div></div>
     <div class="sc"><div class="sc-lbl">DASHBOARD</div><div class="sc-val" style="color:var(--r2)">OFFLINE</div><div class="dot d-r"></div></div>
-    <div class="sc"><div class="sc-lbl">VOICE</div><div class="sc-val" style="color:var(--r2)">Offline</div><div class="dot d-r"></div></div>
+    <div class="sc"><div class="sc-lbl">VOICE</div><div class="sc-val" style="color:var(--g)">ONLINE</div><div class="dot d-g"></div></div>
   </div>
  
   <!-- TERMINAL -->
@@ -423,7 +423,7 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--t1);cursor:n
   <div class="binfo">
     <span>NEON BOT // MAINTENANCE</span>
     <span id="liveClock">--:--:--</span>
-    <span>BUILD 1.0.0-MAINT</span>
+    <span>BUILD 2.4.1-MAINT</span>
   </div>
 </div>
  
@@ -547,12 +547,12 @@ drawCanvas();
    Bei allen weiteren Besuchen: derselbe Timestamp
    → Countdown läuft auch bei Tab-Wechsel weiter.
 ══════════════════════════════════════════════ */
-const TOTAL_MS    = (672*3600 + 30*60) * 1000;  // 2h 34m in ms
-const PROG_START  = 5;   // % bei Wartungsstart
+const TOTAL_MS    = (4*7*24*3600 + 30*60) * 1000;  // 4 Wochen + 30 Minuten
+const PROG_START  = 0;    // % bei Wartungsstart
 const PROG_END    = 100;  // % bei Abschluss
  
 // Persistenter End-Timestamp via localStorage
-const LS_KEY = 'neonbot_maint_end_v1';
+const LS_KEY = 'neonbot_maint_end_v2';
 let endTs = parseInt(localStorage.getItem(LS_KEY) || '0', 10);
 if (!endTs || endTs < Date.now()) {
   // Erster Besuch ODER Wartung bereits abgelaufen → neu setzen
@@ -574,16 +574,17 @@ function tick(){
   const pct     = PROG_START + (PROG_END - PROG_START) * frac;
  
   // ── Countdown ──
-  const hs = Math.floor(rem / 3600000);
-  const ms = Math.floor((rem % 3600000) / 60000);
-  const ss = Math.floor((rem % 60000)   / 1000);
-  document.getElementById('etaH').textContent = pad(hs);
+  const ds = Math.floor(rem / 86400000);
+  const hs = Math.floor((rem % 86400000) / 3600000);
+  const ms = Math.floor((rem % 3600000)  / 60000);
+  const ss = Math.floor((rem % 60000)    / 1000);
+  document.getElementById('etaH').textContent = pad(ds) + 'd ' + pad(hs);
   document.getElementById('etaM').textContent = pad(ms);
   document.getElementById('etaS').textContent = pad(ss);
  
   // ── Side label ──
   document.getElementById('sideETA').textContent =
-    `ETA::${pad(hs)}H${pad(ms)}M`;
+    `ETA::${pad(ds)}D${pad(hs)}H${pad(ms)}M`;
  
   // ── Progress bar (direct width, no animation reset) ──
   progFill.style.width = pct.toFixed(3) + '%';
