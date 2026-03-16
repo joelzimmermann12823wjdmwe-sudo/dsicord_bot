@@ -1,23 +1,58 @@
 ﻿import discord
 from discord.ext import commands
+from discord import app_commands
 
-class Help(commands.Cog):
+class HelpCommand(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.hybrid_command(name="hilfe", description="Zeigt die System-Dokumentation von Neon Bot an.")
-    async def hilfe(self, ctx):
-        embed = discord.Embed(title="Neon Bot | System-Dokumentation", description="Hier findest du eine vollständige Liste aller integrierten Module und Befehle.", color=discord.Color.teal())
+    @commands.hybrid_command(name="help", description="Zeigt eine Liste aller verfügbaren Befehle an.")
+    async def help(self, ctx):
+        # Embed Erstellung im Neon-Stil
+        embed = discord.Embed(
+            title="NEON BOT | Befehlsübersicht",
+            description="Hier findest du alle Funktionen, die ich für deinen Server bereitstelle.",
+            color=discord.Color.from_rgb(0, 212, 255) # Neon Blau
+        )
         
-        embed.add_field(name="🛡️ Moderation", value="`/ban`, `/unban`, `/softban`, `/kick`, `/mute`, `/unmute`, `/clear`, `/slowmode`, `/nick`", inline=False)
-        embed.add_field(name="⚙️ Administration & Schutz", value="`/automod`, `/link_filter`, `/lock`, `/unlock`, `/whitelist`, `/settings`, `/logging`, `/welcome`", inline=False)
-        embed.add_field(name="🎭 Rollen & Sprachkanäle", value="`/addrole`, `/removerole`, `/vckick`, `/vcmute`, `/vcunmute`", inline=False)
-        embed.add_field(name="📊 Info & Statistik", value="`/hilfe`, `/userinfo`, `/serverinfo`, `/avatar`, `/ping`", inline=False)
-        embed.add_field(name="💻 System-Module", value="`/owner`, `/status_bot`, `/test_cmd`", inline=False)
+        # --- KATEGORIE: MODERATION ---
+        moderation_cmds = (
+            "`/ban`, `/kick`, `/warn`, `/timeout`, `/softban`, `/mute`, `/unmute`, "
+            "`/clear`, `/slowmode`, `/lock`, `/unlock`, `/vckick`, `/vcmute`, `/vcunmute`"
+        )
+        embed.add_field(name="🛡️ Moderation", value=moderation_cmds, inline=False)
+
+        # --- KATEGORIE: TOOLS & UTILITY ---
+        tools_cmds = (
+            "`/ping`, `/avatar`, `/serverinfo`, `/userinfo`, `/status_bot`, `/help` "
+        )
+        embed.add_field(name="🛠️ Tools & Utility", value=tools_cmds, inline=False)
+
+        # --- KATEGORIE: KONFIGURATION ---
+        config_cmds = (
+            "`/settings`, `/welcome`, `/logging`, `/automod`, `/link_filter`, `/whitelist`"
+        )
+        embed.add_field(name="⚙️ System & Konfiguration", value=config_cmds, inline=False)
+
+        # --- KATEGORIE: ROLLEN ---
+        role_cmds = (
+            "`/addrole`, `/removerole`"
+        )
+        embed.add_field(name="🎭 Rollen-Management", value=role_cmds, inline=False)
+
+        # --- LINKS AM ENDE ---
+        links = (
+            "🔗 [Website](https://neon-bot-2026.vercel.app/)\n"
+            "⚖️ [Nutzungsbedingungen](https://neon-bot-2026.vercel.app/terms)\n"
+            "🔒 [Datenschutz](https://neon-bot-2026.vercel.app/privacy)\n"
+            "✉️ [Kontakt](https://neon-bot-2026.vercel.app/contact)"
+        )
+        embed.add_field(name="Wichtige Links", value=links, inline=False)
+
+        # Footer mit Bot-Icon (falls vorhanden)
+        embed.set_footer(text=f"Neon Bot 2026 | Angefordert von {ctx.author.display_name}", icon_url=self.bot.user.avatar.url if self.bot.user.avatar else None)
         
         await ctx.send(embed=embed)
 
 async def setup(bot):
-    # Wichtig: main.py muss bot.remove_command("help") ausführen, wenn der Befehl "help" heißen soll. 
-    # Hier nennen wir ihn der Einfachheit halber "hilfe".
-    await bot.add_cog(Help(bot))
+    await bot.add_cog(HelpCommand(bot))
