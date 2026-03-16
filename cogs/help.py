@@ -45,7 +45,8 @@ class HelpCommand(commands.Cog):
             "🔗 [Website](https://neon-bot-2026.vercel.app/)\n"
             "⚖️ [Nutzungsbedingungen](https://neon-bot-2026.vercel.app/terms)\n"
             "🔒 [Datenschutz](https://neon-bot-2026.vercel.app/privacy)\n"
-            "✉️ [Kontakt](https://neon-bot-2026.vercel.app/contact)"
+            "✉️ [Kontakt](https://neon-bot-2026.vercel.app/contact)\n"
+            "🆕 [Aktualisierungen](https://neon-bot-2026.vercel.app/updates)"
         )
         embed.add_field(name="Wichtige Links", value=links, inline=False)
 
