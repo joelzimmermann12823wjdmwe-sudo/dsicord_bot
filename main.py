@@ -1,134 +1,38 @@
 ﻿import discord
 from discord.ext import commands
-from discord import app_commands
 import os
-import requests
 import warnings
-from flask import Flask, render_template, redirect, session, url_for, request
+from flask import Flask
 from threading import Thread
 from dotenv import load_dotenv
-from urllib.parse import urlencode
 
 # Unterdrückt veraltete Warnungen
 warnings.filterwarnings("ignore", category=DeprecationWarning) 
 
-# Falls du diese Pakete für Supabase nutzt:
+# Supabase Integration
 try:
     from postgrest import SyncPostgrestClient
 except ImportError:
     SyncPostgrestClient = None
 
 # --- KONFIGURATION LADEN ---
-# load_dotenv sucht nach einer .env Datei. Wenn keine da ist (wie auf Render), 
-# wird dieser Schritt einfach übersprungen, ohne einen Fehler zu werfen.
 load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 SUPA_URL = os.getenv("SUPABASE_URL")
 SUPA_KEY = os.getenv("SUPABASE_KEY")
-CLIENT_ID = os.getenv("DISCORD_CLIENT_ID")
-CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
-REDIRECT_URI = os.getenv("REDIRECT_URI") # Auf Render in Env setzen!
+OWNER_ID = 1465263782258544680  # Deine ID bleibt fest
 
-# --- FLASK DASHBOARD ---
-base_dir = os.path.dirname(os.path.abspath(__file__))
-html_dir = os.path.join(base_dir, 'html')
-
-app = Flask(__name__, template_folder=html_dir)
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "neon_secret_888")
+# --- MINIMALER WEBSERVER (Für Hosting-Provider wie Render) ---
+app = Flask(__name__)
 
 @app.route('/')
 def home():
-    # Wir nutzen 'home.html' wie in deinem Ordner gesehen
-    return render_template('home.html', user=session.get('user'))
+    return "NEON BOT ist online! ⚡"
 
-@app.route('/login')
-def login():
-    # Wir bauen die Parameter sauber als Dictionary auf
-    params = {
-        'client_id': CLIENT_ID,
-        'redirect_uri': REDIRECT_URI,
-        'response_type': 'code',
-        'scope': 'identify guilds',
-        'permissions': '8'
-    }
-    
-    # urlencode macht aus dem Dictionary einen perfekt formatierten String
-    auth_url = f"https://discord.com/api/oauth2/authorize?{urlencode(params)}"
-    
-    print(f"DEBUG: Redirect URI ist: {REDIRECT_URI}") # Das sehen wir dann in den Render Logs
-    return redirect(auth_url)
-
-@app.route('/callback')
-def callback():
-    code = request.args.get('code')
-    if not code:
-        return redirect(url_for('home'))
-    
-    data = {
-        'client_id': CLIENT_ID,
-        'client_secret': CLIENT_SECRET,
-        'grant_type': 'authorization_code',
-        'code': code,
-        'redirect_uri': REDIRECT_URI
-    }
-    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-    
-    r = requests.post("https://discord.com/api/v10/oauth2/token", data=data, headers=headers).json()
-    access_token = r.get('access_token')
-    
-    if access_token:
-        user_data = requests.get("https://discord.com/api/v10/users/@me", headers={'Authorization': f"Bearer {access_token}"}).json()
-        session['user'] = user_data
-        return redirect(url_for('wartung'))
-    
-    return redirect(url_for('home'))
-
-@app.route('/wartung')
-def wartung():
-    if 'user' not in session:
-        return redirect(url_for('login'))
-    return render_template('wartung.html', user=session['user'])
-
-# --- Deine Discord User ID (Hier eintragen!) ---
-OWNER_ID = 1465263782258544680  # Ersetze das mit deiner echten ID
-
-@bot.event
-async def on_ready():
-    print(f'Eingeloggt als {bot.user.name}')
-    
-    # 1. Datenbank Verbindungstest
-    db_status = "❌ Fehlgeschlagen"
-    try:
-        # Ein einfacher Test-Aufruf an Supabase
-        if bot.db:
-            bot.db.table("guild_settings").select("count", count="exact").limit(1).execute()
-            db_status = "✅ Erfolgreich verbunden"
-    except Exception as e:
-        db_status = f"❌ Fehler: {e}"
-
-    # 2. DM an dich senden
-    owner = await bot.fetch_user(OWNER_ID)
-    if owner:
-        embed = discord.Embed(
-            title="🚀 NEON BOT Status-Update",
-            description="Der Bot wurde gerade gestartet.",
-            color=discord.Color.green()
-        )
-        embed.add_field(name="Datenbank (Supabase)", value=db_status)
-        embed.set_footer(text=f"Gestartet um {discord.utils.utcnow().strftime('%H:%M:%S')} UTC")
-        
-        try:
-            await owner.send(embed=embed)
-        except:
-            print("Konnte keine DM an den Owner senden (DMs eventuell geschlossen).")
-
-# --- DISCONNECT EVENT ---
-@bot.event
-async def on_disconnect():
-    print("Die Verbindung zum Bot wurde unterbrochen!")
-    # Hinweis: Da die Verbindung hier weg ist, kann der Bot keine Nachricht mehr über Discord senden.
-    # Er wird es jedoch im Konsolen-Log anzeigen.
+@app.route('/health')
+def health():
+    return "OK", 200
 
 # --- NEON BOT KLASSE ---
 class NeonBot(commands.Bot):
@@ -137,17 +41,22 @@ class NeonBot(commands.Bot):
         super().__init__(command_prefix="!", intents=intents)
         
         # Datenbank-Client initialisieren
+        self.db = None
         if SUPA_URL and SUPA_KEY and SyncPostgrestClient:
-            self.db = SyncPostgrestClient(f"{SUPA_URL}/rest/v1", headers={
-                "apikey": SUPA_KEY, "Authorization": f"Bearer {SUPA_KEY}"
-            })
-            print("✅ Datenbank-Verbindung konfiguriert.")
-
-    
+            try:
+                self.db = SyncPostgrestClient(f"{SUPA_URL}/rest/v1", headers={
+                    "apikey": SUPA_KEY, 
+                    "Authorization": f"Bearer {SUPA_KEY}"
+                })
+                print("✅ Datenbank-Verbindung konfiguriert.")
+            except Exception as e:
+                print(f"❌ Datenbank-Fehler: {e}")
 
     async def setup_hook(self):
         # Cogs automatisch laden
+        base_dir = os.path.dirname(os.path.abspath(__file__))
         cogs_path = os.path.join(base_dir, 'cogs')
+        
         if os.path.exists(cogs_path):
             for filename in os.listdir(cogs_path):
                 if filename.endswith('.py'):
@@ -157,25 +66,54 @@ class NeonBot(commands.Bot):
                     except Exception as e:
                         print(f"❌ Fehler beim Laden von {filename}: {e}")
 
-        # Slash Commands global synchronisieren
+        # Slash Commands synchronisieren
         await self.tree.sync()
         print("✅ Slash-Commands global synchronisiert.")
 
     async def on_ready(self):
         print(f'⚡ {self.user.name} ist online und bereit!')
+        
+        # 1. Datenbank Verbindungstest
+        db_status = "❌ Nicht verbunden"
+        if self.db:
+            try:
+                self.db.table("guild_settings").select("count", count="exact").limit(1).execute()
+                db_status = "✅ Erfolgreich verbunden"
+            except Exception as e:
+                db_status = f"❌ Fehler: {e}"
 
+        # 2. Status-DM an dich senden
+        try:
+            owner = await self.fetch_user(OWNER_ID)
+            if owner:
+                embed = discord.Embed(
+                    title="🚀 NEON BOT Status-Update",
+                    description="Der Bot wurde gerade erfolgreich gestartet.",
+                    color=discord.Color.from_rgb(0, 212, 255)
+                )
+                embed.add_field(name="Datenbank (Supabase)", value=db_status)
+                embed.set_footer(text=f"Zeitpunkt: {discord.utils.utcnow().strftime('%H:%M:%S')} UTC")
+                await owner.send(embed=embed)
+        except Exception as e:
+            print(f"Konnte keine Start-DM senden: {e}")
+
+    async def on_disconnect(self):
+        print("🚨 Die Verbindung zum Bot wurde unterbrochen!")
+
+# Instanz erstellen
 bot = NeonBot()
 
-# --- START FUNKTION ---
+# --- START FUNKTIONEN ---
 def run_flask():
-    # Port 10000 ist Standard für Render
-    app.run(host='0.0.0.0', port=10000, use_reloader=False)
+    # Render nutzt meist Port 10000
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
 
 if __name__ == '__main__':
     if not TOKEN:
-        print("❌ FEHLER: Kein DISCORD_TOKEN gefunden. Bot kann nicht starten.")
+        print("❌ FEHLER: Kein DISCORD_TOKEN gefunden.")
     else:
-        # Flask in einem eigenen Thread starten
+        # Flask Webserver in einem eigenen Thread starten (Keep-alive)
         Thread(target=run_flask, daemon=True).start()
         # Bot starten
         bot.run(TOKEN)
