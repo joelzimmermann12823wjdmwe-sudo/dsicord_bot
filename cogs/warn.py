@@ -33,7 +33,7 @@ class Warn(commands.Cog):
         except:
             dm_sent = False
 
-        await ctx.send(f"✅ **{member.name}** wurde verwarnt. {'(DM gesendet)' if dm_sent else '(DM fehlgeschlagen)'}")
+        await ctx.send(f"✅ **{member.name}** wurde verwarnt. {'(DM gesendet)' if dm_sent else '(DM fehlgeschlagen)'}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(Warn(bot))

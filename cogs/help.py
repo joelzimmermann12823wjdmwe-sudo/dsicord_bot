@@ -24,7 +24,7 @@ class HelpCommand(commands.Cog):
 
         # --- KATEGORIE: TOOLS & UTILITY ---
         tools_cmds = (
-            "`/ping`, `/avatar`, `/serverinfo`, `/userinfo`, `/status_bot`, `/help` "
+            "`/ping`, `/avatar`, `/serverinfo`, `/userinfo`, `/status_bot`, `/help`, `/Ankündigung`"
         )
         embed.add_field(name="🛠️ Tools & Utility", value=tools_cmds, inline=False)
 
@@ -53,7 +53,7 @@ class HelpCommand(commands.Cog):
         # Footer mit Bot-Icon (falls vorhanden)
         embed.set_footer(text=f"Neon Bot 2026 | Angefordert von {ctx.author.display_name}", icon_url=self.bot.user.avatar.url if self.bot.user.avatar else None)
         
-        await ctx.send(embed=embed)
+        await ctx.send(embed=embed, ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(HelpCommand(bot))

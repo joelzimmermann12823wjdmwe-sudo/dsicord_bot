@@ -90,6 +90,46 @@ def wartung():
         return redirect(url_for('login'))
     return render_template('wartung.html', user=session['user'])
 
+# --- Deine Discord User ID (Hier eintragen!) ---
+OWNER_ID = 1465263782258544680  # Ersetze das mit deiner echten ID
+
+@bot.event
+async def on_ready():
+    print(f'Eingeloggt als {bot.user.name}')
+    
+    # 1. Datenbank Verbindungstest
+    db_status = "❌ Fehlgeschlagen"
+    try:
+        # Ein einfacher Test-Aufruf an Supabase
+        if bot.db:
+            bot.db.table("guild_settings").select("count", count="exact").limit(1).execute()
+            db_status = "✅ Erfolgreich verbunden"
+    except Exception as e:
+        db_status = f"❌ Fehler: {e}"
+
+    # 2. DM an dich senden
+    owner = await bot.fetch_user(OWNER_ID)
+    if owner:
+        embed = discord.Embed(
+            title="🚀 NEON BOT Status-Update",
+            description="Der Bot wurde gerade gestartet.",
+            color=discord.Color.green()
+        )
+        embed.add_field(name="Datenbank (Supabase)", value=db_status)
+        embed.set_footer(text=f"Gestartet um {discord.utils.utcnow().strftime('%H:%M:%S')} UTC")
+        
+        try:
+            await owner.send(embed=embed)
+        except:
+            print("Konnte keine DM an den Owner senden (DMs eventuell geschlossen).")
+
+# --- DISCONNECT EVENT ---
+@bot.event
+async def on_disconnect():
+    print("Die Verbindung zum Bot wurde unterbrochen!")
+    # Hinweis: Da die Verbindung hier weg ist, kann der Bot keine Nachricht mehr über Discord senden.
+    # Er wird es jedoch im Konsolen-Log anzeigen.
+
 # --- NEON BOT KLASSE ---
 class NeonBot(commands.Bot):
     def __init__(self):
@@ -102,6 +142,8 @@ class NeonBot(commands.Bot):
                 "apikey": SUPA_KEY, "Authorization": f"Bearer {SUPA_KEY}"
             })
             print("✅ Datenbank-Verbindung konfiguriert.")
+
+    
 
     async def setup_hook(self):
         # Cogs automatisch laden
