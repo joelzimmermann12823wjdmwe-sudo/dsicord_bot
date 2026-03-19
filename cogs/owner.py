@@ -15,7 +15,6 @@ class Owner(commands.Cog):
             return False
         return True
 
-    # --- GRUPPEN COMMAND: /OWNER ---
     owner_group = app_commands.Group(name="owner", description="Exklusive Entwickler-Befehle")
 
     @owner_group.command(name="system", description="Bot neustarten oder ausschalten")
@@ -34,19 +33,25 @@ class Owner(commands.Cog):
             await self.bot.close()
 
     @owner_group.command(name="ban", description="User oder Server sperren")
+    @app_commands.choices(typ=[
+        app_commands.Choice(name="Benutzer (User)", value="user"),
+        app_commands.Choice(name="Server (Guild)", value="guild")
+    ])
     async def bot_ban(self, interaction: discord.Interaction, typ: str, id: str, grund: str = "Kein Grund angegeben"):
         if not await self.is_owner(interaction): return
         
-        # Defer benutzen, um Timeouts zu verhindern!
         await interaction.response.defer(ephemeral=True)
 
         if self.bot.db:
-            self.bot.db.table("bot_bans").upsert({
-                "target_id": id,
-                "type": typ,
-                "reason": grund
-            }).execute()
-            await interaction.followup.send(f"✅ ID `{id}` ({typ}) wurde gesperrt.")
+            try:
+                self.bot.db.table("bot_bans").upsert({
+                    "target_id": id,
+                    "type": typ,
+                    "reason": grund
+                }).execute()
+                await interaction.followup.send(f"✅ ID `{id}` ({typ}) wurde gesperrt.\n**Grund:** {grund}")
+            except Exception as e:
+                await interaction.followup.send(f"❌ Datenbank-Fehler: {e}")
         else:
             await interaction.followup.send("❌ Keine Datenbankverbindung.")
 
@@ -56,9 +61,15 @@ class Owner(commands.Cog):
         await interaction.response.defer(ephemeral=True)
 
         if self.bot.db:
-            self.bot.db.table("bot_bans").delete().eq("target_id", id).execute()
-            await interaction.followup.send(f"✅ ID `{id}` entsperrt.")
+            try:
+                self.bot.db.table("bot_bans").delete().eq("target_id", id).execute()
+                await interaction.followup.send(f"✅ ID `{id}` entsperrt.")
+            except Exception as e:
+                await interaction.followup.send(f"❌ Datenbank-Fehler: {e}")
+        else:
+            await interaction.followup.send("❌ Keine Datenbankverbindung.")
 
+    # --- HIER SIND DIE NEUEN KATEGORIEN ---
     @owner_group.command(name="list", description="Zeigt alle gebannten User und Server an")
     async def bot_ban_list(self, interaction: discord.Interaction):
         if not await self.is_owner(interaction): return
@@ -72,42 +83,46 @@ class Owner(commands.Cog):
         if not res.data:
             return await interaction.followup.send("ℹ️ Es sind aktuell keine IDs gesperrt.")
 
-        embed = discord.Embed(title="🚫 Bot-Ban Liste", color=discord.Color.red())
+        embed = discord.Embed(title="🚫 Bot-Ban Liste", description="Globale Sperrungen aus der Datenbank", color=discord.Color.red())
         
-        for entry in res.data:
-            val = f"Typ: `{entry['type']}`\nGrund: {entry['reason']}"
-            embed.add_field(name=f"ID: {entry['target_id']}", value=val, inline=False)
+        # Listen filtern (Kategorisieren)
+        banned_users = [f"`{e['target_id']}` - {e['reason']}" for e in res.data if e['type'] == 'user']
+        banned_guilds = [f"`{e['target_id']}` - {e['reason']}" for e in res.data if e['type'] == 'guild']
+
+        # Kategorie: USER
+        if banned_users:
+            embed.add_field(name="👤 Gesperrte Benutzer", value="\n".join(banned_users), inline=False)
+        else:
+            embed.add_field(name="👤 Gesperrte Benutzer", value="*Keine Benutzer gesperrt.*", inline=False)
+
+        # Kategorie: SERVER
+        if banned_guilds:
+            embed.add_field(name="🏢 Gesperrte Server", value="\n".join(banned_guilds), inline=False)
+        else:
+            embed.add_field(name="🏢 Gesperrte Server", value="*Keine Server gesperrt.*", inline=False)
 
         await interaction.followup.send(embed=embed)
 
-    # --- VERBESSERTER GLOBALER CHECK ---
+    # Globaler Check
     @commands.Cog.listener()
     async def on_interaction(self, interaction: discord.Interaction):
-        # Wir prüfen nur, wenn es ein Command ist
         if interaction.type != discord.InteractionType.application_command:
             return
-
-        # Owner darf immer alles
         if interaction.user.id == self.developer_id:
             return
-
         if not self.bot.db: return
         
         user_id = str(interaction.user.id)
         guild_id = str(interaction.guild_id) if interaction.guild else None
 
-        # Nur eine gezielte Abfrage statt der ganzen Tabelle (schneller!)
-        res = self.bot.db.table("bot_bans").select("target_id").or_(f"target_id.eq.{user_id},target_id.eq.{guild_id}").execute()
-
-        if res.data:
-            # Wenn der User oder Server in der Liste ist
-            if not interaction.response.is_done():
-                await interaction.response.send_message(
-                    "🚫 **Zugriff verweigert.** Du oder dieser Server wurde global von der Bot-Nutzung ausgeschlossen. Fehler oder Bug? https://neon-bot-2026.vercel.app/contact", 
-                    ephemeral=True
-                )
-            # Hier werfen wir einen Fehler, um die Ausführung des Commands zu stoppen
-            raise app_commands.AppCommandError("Banned user/server attempted to use a command. https://neon-bot-2026.vercel.app/contact")
+        try:
+            res = self.bot.db.table("bot_bans").select("target_id").or_(f"target_id.eq.{user_id},target_id.eq.{guild_id}").execute()
+            if res.data:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message("🚫 **Zugriff verweigert.** Du oder dieser Server wurde vom Bot-Entwickler gesperrt. Kontakt: https://neon-bot-2026.vercel.app/contact", ephemeral=True)
+                raise app_commands.AppCommandError("Banned user/server attempted to use a command.")
+        except:
+            pass # Verhindert Abstürze, falls DB kurz offline ist
 
 async def setup(bot):
     await bot.add_cog(Owner(bot))
