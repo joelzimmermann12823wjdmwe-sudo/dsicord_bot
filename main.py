@@ -20,9 +20,9 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 SUPA_URL = os.getenv("SUPABASE_URL")
 SUPA_KEY = os.getenv("SUPABASE_KEY")
 
-# --- DEINE IDS (HIER ANPASSEN) ---
-OWNER_ID = 1465263782258544680      # Deine User ID
-YOUR_GUILD_ID = 1480922886683361301  # DIE ID DEINES SERVERS (wird nie gebannt!)
+# --- DEINE IDS ---
+OWNER_ID = 1465263782258544680      
+YOUR_GUILD_ID = 1480922886683361301  # Deine Server-ID (Whitelist)
 
 app = Flask(__name__)
 
@@ -46,38 +46,43 @@ class NeonBot(commands.Bot):
             except Exception as e:
                 print(f"❌ Datenbank-Fehler: {e}")
 
-    # --- BAN-ENFORCEMENT ---
-    async def enforce_guild_ban(self, guild):
+    # --- ZENTRALE LEAVE & LÖSCH LOGIK ---
+    async def enforce_guild_ban(self, guild_id: int):
         """Kickt den Bot, löscht Daten und informiert Owner."""
-        # Sicherheits-Check: Dein Server wird NIEMALS gekickt/gelöscht
-        if not guild or guild.id == YOUR_GUILD_ID:
+        if guild_id == YOUR_GUILD_ID:
             return
 
+        guild = self.get_guild(guild_id) or await self.fetch_guild(guild_id)
+        if not guild:
+            return
+
+        # 1. Server Owner informieren
         try:
             contact_url = "https://neon-bot-2026.vercel.app/contact"
             embed = discord.Embed(
                 title="🚫 Server dauerhaft gesperrt",
-                description=f"Der Server **{guild.name}** ist gesperrt.\n[Kontakt]({contact_url})",
+                description=f"Der Server **{guild.name}** wurde gesperrt.\n[Kontakt & Einspruch]({contact_url})",
                 color=discord.Color.red()
             )
             await guild.owner.send(embed=embed)
         except: pass
 
+        # 2. Daten in Supabase löschen
         if self.db:
             try:
-                g_id = str(guild.id)
+                g_id = str(guild_id)
                 tables = ["guild_settings", "warns", "economy", "welcome_messages"]
                 for table in tables:
                     self.db.table(table).delete().eq("guild_id", g_id).execute()
+                print(f"🧹 Daten für {guild_id} gelöscht.")
             except Exception as e:
                 print(f"Löschfehler: {e}")
 
+        # 3. Server verlassen
         await guild.leave()
-        print(f"🚪 Gebannten Server {guild.id} verlassen.")
+        print(f"🚪 Bot hat gebannten Server {guild_id} verlassen.")
 
-    # --- DER WHITELIST-CHECK ---
     async def is_banned(self, user_id: int, guild_id: int = None) -> bool:
-        # 1. AUSNAHME: Du als Person oder DEIN Server sind IMMER erlaubt
         if user_id == OWNER_ID or guild_id == YOUR_GUILD_ID:
             return False
             
@@ -87,10 +92,9 @@ class NeonBot(commands.Bot):
                 g_id = str(guild_id) if guild_id else "0"
                 res = self.db.table("bot_bans").select("target_id").in_("target_id", [u_id, g_id]).execute()
                 
+                # Wenn der aktuelle Server in der Ban-Liste auftaucht -> Enforce!
                 if any(str(item['target_id']) == g_id for item in res.data):
-                    guild = self.get_guild(guild_id)
-                    if guild:
-                        await self.enforce_guild_ban(guild)
+                    await self.enforce_guild_ban(guild_id)
                     return True
                 
                 return len(res.data) > 0
@@ -99,18 +103,11 @@ class NeonBot(commands.Bot):
         return False
 
     async def on_guild_join(self, guild):
-        # Wenn der Bot DEINEM Server beitritt, prüfe gar nicht erst auf Bans
-        if guild.id == YOUR_GUILD_ID:
-            print(f"🏠 Dem Haupt-Server {guild.name} beigetreten. Ban-Check übersprungen.")
-            return
-
+        if guild.id == YOUR_GUILD_ID: return
         if self.db:
-            try:
-                res = self.db.table("bot_bans").select("target_id").eq("target_id", str(guild.id)).execute()
-                if res.data:
-                    await self.enforce_guild_ban(guild)
-            except Exception as e:
-                print(f"Fehler bei Join-Check: {e}")
+            res = self.db.table("bot_bans").select("target_id").eq("target_id", str(guild.id)).execute()
+            if res.data:
+                await self.enforce_guild_ban(guild.id)
 
     async def bot_check(self, ctx):
         if await self.is_banned(ctx.author.id, ctx.guild.id if ctx.guild else None):
@@ -144,7 +141,7 @@ class NeonBot(commands.Bot):
         else: print(f"⚠️ Prefix-Error: {error}")
 
     async def on_ready(self):
-        print(f"⚡ {self.user.name} online. Haupt-Server {YOUR_GUILD_ID} ist whitelisted!")
+        print(f"⚡ {self.user.name} online. Ban-System inkl. Auto-Leave bereit!")
 
 bot = NeonBot()
 

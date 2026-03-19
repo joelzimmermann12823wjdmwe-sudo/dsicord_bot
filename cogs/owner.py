@@ -44,12 +44,26 @@ class Owner(commands.Cog):
 
         if self.bot.db:
             try:
+                # In Datenbank speichern
                 self.bot.db.table("bot_bans").upsert({
                     "target_id": id,
                     "type": typ,
                     "reason": grund
                 }).execute()
-                await interaction.followup.send(f"✅ ID `{id}` ({typ}) wurde gesperrt.\n**Grund:** {grund}")
+                
+                status_msg = f"✅ ID `{id}` ({typ}) wurde gesperrt.\n**Grund:** {grund}"
+                
+                # --- SOFORTIGER LEAVE BEI GUILD BAN ---
+                if typ == "guild":
+                    try:
+                        guild_id_int = int(id)
+                        # Ruft die Funktion in der main.py auf
+                        await self.bot.enforce_guild_ban(guild_id_int)
+                        status_msg += "\n🚪 Der Bot hat den Server verlassen und Daten gelöscht."
+                    except Exception as e:
+                        status_msg += f"\n⚠️ Fehler beim Verlassen des Servers: {e}"
+
+                await interaction.followup.send(status_msg)
             except Exception as e:
                 await interaction.followup.send(f"❌ Datenbank-Fehler: {e}")
         else:
@@ -63,13 +77,12 @@ class Owner(commands.Cog):
         if self.bot.db:
             try:
                 self.bot.db.table("bot_bans").delete().eq("target_id", id).execute()
-                await interaction.followup.send(f"✅ ID `{id}` entsperrt.")
+                await interaction.followup.send(f"✅ ID `{id}` entsperrt. Der Bot kann diesen Server nun wieder betreten.")
             except Exception as e:
                 await interaction.followup.send(f"❌ Datenbank-Fehler: {e}")
         else:
             await interaction.followup.send("❌ Keine Datenbankverbindung.")
 
-    # --- HIER SIND DIE NEUEN KATEGORIEN ---
     @owner_group.command(name="list", description="Zeigt alle gebannten User und Server an")
     async def bot_ban_list(self, interaction: discord.Interaction):
         if not await self.is_owner(interaction): return
@@ -83,46 +96,27 @@ class Owner(commands.Cog):
         if not res.data:
             return await interaction.followup.send("ℹ️ Es sind aktuell keine IDs gesperrt.")
 
-        embed = discord.Embed(title="🚫 Bot-Ban Liste", description="Globale Sperrungen aus der Datenbank", color=discord.Color.red())
+        embed = discord.Embed(
+            title="🚫 Bot-Ban Liste", 
+            description="Globale Sperrungen in der Datenbank", 
+            color=discord.Color.red()
+        )
         
-        # Listen filtern (Kategorisieren)
         banned_users = [f"`{e['target_id']}` - {e['reason']}" for e in res.data if e['type'] == 'user']
         banned_guilds = [f"`{e['target_id']}` - {e['reason']}" for e in res.data if e['type'] == 'guild']
 
-        # Kategorie: USER
-        if banned_users:
-            embed.add_field(name="👤 Gesperrte Benutzer", value="\n".join(banned_users), inline=False)
-        else:
-            embed.add_field(name="👤 Gesperrte Benutzer", value="*Keine Benutzer gesperrt.*", inline=False)
-
-        # Kategorie: SERVER
-        if banned_guilds:
-            embed.add_field(name="🏢 Gesperrte Server", value="\n".join(banned_guilds), inline=False)
-        else:
-            embed.add_field(name="🏢 Gesperrte Server", value="*Keine Server gesperrt.*", inline=False)
+        embed.add_field(
+            name="👤 Gesperrte Benutzer", 
+            value="\n".join(banned_users) if banned_users else "*Keine*", 
+            inline=False
+        )
+        embed.add_field(
+            name="🏢 Gesperrte Server", 
+            value="\n".join(banned_guilds) if banned_guilds else "*Keine*", 
+            inline=False
+        )
 
         await interaction.followup.send(embed=embed)
-
-    # Globaler Check
-    @commands.Cog.listener()
-    async def on_interaction(self, interaction: discord.Interaction):
-        if interaction.type != discord.InteractionType.application_command:
-            return
-        if interaction.user.id == self.developer_id:
-            return
-        if not self.bot.db: return
-        
-        user_id = str(interaction.user.id)
-        guild_id = str(interaction.guild_id) if interaction.guild else None
-
-        try:
-            res = self.bot.db.table("bot_bans").select("target_id").or_(f"target_id.eq.{user_id},target_id.eq.{guild_id}").execute()
-            if res.data:
-                if not interaction.response.is_done():
-                    await interaction.response.send_message("🚫 **Zugriff verweigert.** Du oder dieser Server wurde vom Bot-Entwickler gesperrt. Kontakt: https://neon-bot-2026.vercel.app/contact", ephemeral=True)
-                raise app_commands.AppCommandError("Banned user/server attempted to use a command.")
-        except:
-            pass # Verhindert Abstürze, falls DB kurz offline ist
 
 async def setup(bot):
     await bot.add_cog(Owner(bot))
