@@ -1,5 +1,6 @@
 ﻿import discord
 from discord.ext import commands
+from discord import app_commands
 import os
 import warnings
 from flask import Flask
@@ -53,7 +54,33 @@ class NeonBot(commands.Bot):
                 print(f"❌ Datenbank-Fehler: {e}")
 
     async def setup_hook(self):
-        # Cogs automatisch laden
+        # 1. GLOBALER BAN-CHECK (Das Gedächtnis des Bots)
+        @self.tree.check
+        async def global_ban_check(interaction: discord.Interaction):
+            # Der Developer darf immer alles
+            if interaction.user.id == OWNER_ID:
+                return True
+
+            if self.db:
+                user_id = str(interaction.user.id)
+                guild_id = str(interaction.guild_id) if interaction.guild else "0"
+
+                try:
+                    # Suche nach User-ID oder Server-ID in der Ban-Tabelle
+                    res = self.db.table("bot_bans").select("target_id").in_("target_id", [user_id, guild_id]).execute()
+                    
+                    if res.data:
+                        await interaction.response.send_message(
+                            "🚫 **Zugriff verweigert.** Du oder dieser Server wurde global von der Bot-Nutzung ausgeschlossen. Kontakt: https://neon-bot-2026.vercel.app/contact", 
+                            ephemeral=True
+                        )
+                        return False # Blockiert die Ausführung
+                except Exception as e:
+                    print(f"Fehler beim Ban-Check: {e}")
+            
+            return True
+
+        # 2. Cogs automatisch laden
         base_dir = os.path.dirname(os.path.abspath(__file__))
         cogs_path = os.path.join(base_dir, 'cogs')
         
@@ -66,14 +93,14 @@ class NeonBot(commands.Bot):
                     except Exception as e:
                         print(f"❌ Fehler beim Laden von {filename}: {e}")
 
-        # Slash Commands synchronisieren
+        # 3. Slash Commands synchronisieren
         await self.tree.sync()
         print("✅ Slash-Commands global synchronisiert.")
 
     async def on_ready(self):
         print(f'⚡ {self.user.name} ist online und bereit!')
         
-        # 1. Datenbank Verbindungstest
+        # Datenbank Verbindungstest
         db_status = "❌ Nicht verbunden"
         if self.db:
             try:
@@ -82,13 +109,13 @@ class NeonBot(commands.Bot):
             except Exception as e:
                 db_status = f"❌ Fehler: {e}"
 
-        # 2. Status-DM an dich senden
+        # Status-DM an dich
         try:
             owner = await self.fetch_user(OWNER_ID)
             if owner:
                 embed = discord.Embed(
                     title="🚀 NEON BOT Status-Update",
-                    description="Der Bot wurde gerade erfolgreich gestartet.",
+                    description="Der Bot wurde gestartet und der globale Ban-Check ist aktiv.",
                     color=discord.Color.from_rgb(0, 212, 255)
                 )
                 embed.add_field(name="Datenbank (Supabase)", value=db_status)
@@ -105,7 +132,6 @@ bot = NeonBot()
 
 # --- START FUNKTIONEN ---
 def run_flask():
-    # Render nutzt meist Port 10000
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
 
@@ -113,7 +139,5 @@ if __name__ == '__main__':
     if not TOKEN:
         print("❌ FEHLER: Kein DISCORD_TOKEN gefunden.")
     else:
-        # Flask Webserver in einem eigenen Thread starten (Keep-alive)
         Thread(target=run_flask, daemon=True).start()
-        # Bot starten
         bot.run(TOKEN)
