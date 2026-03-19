@@ -9,10 +9,9 @@ class Owner(commands.Cog):
         self.bot = bot
         self.developer_id = 1465263782258544680 # Deine ID
 
-    # --- HILFSFUNKTION: NUR DU DARFST DAS ---
     async def is_owner(self, interaction: discord.Interaction):
         if interaction.user.id != self.developer_id:
-            await interaction.response.send_message("❌ Dieser Befehl ist nur für den Bot-Entwickler reserviert.", ephemeral=True)
+            await interaction.response.send_message("❌ Dieser Befehl ist nur für den Bot-Entwickler.", ephemeral=True)
             return False
         return True
 
@@ -26,23 +25,20 @@ class Owner(commands.Cog):
     ])
     async def system_control(self, interaction: discord.Interaction, action: str):
         if not await self.is_owner(interaction): return
+        
+        await interaction.response.send_message(f"⚙️ Aktion `{action}` wird ausgeführt...", ephemeral=True)
 
         if action == "restart":
-            await interaction.response.send_message("🔄 Bot wird neu gestartet...", ephemeral=True)
-            # Auf Hosting-Plattformen wie Render löst ein Exit-Code 1 oft einen Auto-Restart aus
             os.execv(sys.executable, ['python'] + sys.argv)
-        
         elif action == "shutdown":
-            await interaction.response.send_message("🛑 Bot wird heruntergefahren...", ephemeral=True)
             await self.bot.close()
 
-    @owner_group.command(name="ban", description="Einen User oder Server vom Bot sperren")
-    @app_commands.choices(typ=[
-        app_commands.Choice(name="Benutzer (User)", value="user"),
-        app_commands.Choice(name="Server (Guild)", value="guild")
-    ])
+    @owner_group.command(name="ban", description="User oder Server sperren")
     async def bot_ban(self, interaction: discord.Interaction, typ: str, id: str, grund: str = "Kein Grund angegeben"):
         if not await self.is_owner(interaction): return
+        
+        # Defer benutzen, um Timeouts zu verhindern!
+        await interaction.response.defer(ephemeral=True)
 
         if self.bot.db:
             self.bot.db.table("bot_bans").upsert({
@@ -50,42 +46,68 @@ class Owner(commands.Cog):
                 "type": typ,
                 "reason": grund
             }).execute()
-            
-            msg = f"✅ {'Benutzer' if typ == 'user' else 'Server'} mit der ID `{id}` wurde vom Bot gesperrt.\n**Grund:** {grund}"
-            await interaction.response.send_message(msg, ephemeral=True)
+            await interaction.followup.send(f"✅ ID `{id}` ({typ}) wurde gesperrt.")
         else:
-            await interaction.response.send_message("❌ Datenbank nicht erreichbar.", ephemeral=True)
+            await interaction.followup.send("❌ Keine Datenbankverbindung.")
 
-    @owner_group.command(name="unban", description="Einen User oder Server entsperren")
+    @owner_group.command(name="unban", description="User oder Server entsperren")
     async def bot_unban(self, interaction: discord.Interaction, id: str):
         if not await self.is_owner(interaction): return
+        await interaction.response.defer(ephemeral=True)
 
         if self.bot.db:
             self.bot.db.table("bot_bans").delete().eq("target_id", id).execute()
-            await interaction.response.send_message(f"✅ ID `{id}` wurde erfolgreich entsperrt.", ephemeral=True)
+            await interaction.followup.send(f"✅ ID `{id}` entsperrt.")
 
-    # --- GLOBALER CHECK ---
-    # Dieser Teil prüft bei JEDER Interaktion, ob der User oder Server gebannt ist
+    @owner_group.command(name="list", description="Zeigt alle gebannten User und Server an")
+    async def bot_ban_list(self, interaction: discord.Interaction):
+        if not await self.is_owner(interaction): return
+        await interaction.response.defer(ephemeral=True)
+
+        if not self.bot.db:
+            return await interaction.followup.send("❌ Keine Datenbank.")
+
+        res = self.bot.db.table("bot_bans").select("*").execute()
+        
+        if not res.data:
+            return await interaction.followup.send("ℹ️ Es sind aktuell keine IDs gesperrt.")
+
+        embed = discord.Embed(title="🚫 Bot-Ban Liste", color=discord.Color.red())
+        
+        for entry in res.data:
+            val = f"Typ: `{entry['type']}`\nGrund: {entry['reason']}"
+            embed.add_field(name=f"ID: {entry['target_id']}", value=val, inline=False)
+
+        await interaction.followup.send(embed=embed)
+
+    # --- VERBESSERTER GLOBALER CHECK ---
     @commands.Cog.listener()
     async def on_interaction(self, interaction: discord.Interaction):
+        # Wir prüfen nur, wenn es ein Command ist
+        if interaction.type != discord.InteractionType.application_command:
+            return
+
+        # Owner darf immer alles
+        if interaction.user.id == self.developer_id:
+            return
+
         if not self.bot.db: return
         
-        # Prüfe User ID und Guild ID
         user_id = str(interaction.user.id)
         guild_id = str(interaction.guild_id) if interaction.guild else None
 
-        # Datenbank-Check
-        res = self.bot.db.table("bot_bans").select("*").execute()
-        banned_ids = [item['target_id'] for item in res.data]
+        # Nur eine gezielte Abfrage statt der ganzen Tabelle (schneller!)
+        res = self.bot.db.table("bot_bans").select("target_id").or_(f"target_id.eq.{user_id},target_id.eq.{guild_id}").execute()
 
-        if user_id in banned_ids or (guild_id and guild_id in banned_ids):
-            # Falls gebannt, breche die Interaktion ab
+        if res.data:
+            # Wenn der User oder Server in der Liste ist
             if not interaction.response.is_done():
                 await interaction.response.send_message(
-                    "🚫 Du oder dieser Server wurde von der Nutzung dieses Bots ausgeschlossen! Fehler oder Bug? https://neon-bot-2026.vercel.app/contact", 
+                    "🚫 **Zugriff verweigert.** Du oder dieser Server wurde global von der Bot-Nutzung ausgeschlossen. Fehler oder Bug? https://neon-bot-2026.vercel.app/contact", 
                     ephemeral=True
                 )
-            return
+            # Hier werfen wir einen Fehler, um die Ausführung des Commands zu stoppen
+            raise app_commands.AppCommandError("Banned user/server attempted to use a command. https://neon-bot-2026.vercel.app/contact")
 
 async def setup(bot):
     await bot.add_cog(Owner(bot))
