@@ -43,44 +43,45 @@ class NeonBot(commands.Bot):
             except Exception as e:
                 print(f"❌ DB-Fehler: {e}")
 
-    # --- HILFSFUNKTION FÜR DEN BAN-CHECK ---
-    async def check_is_banned(self, user_id: int, guild_id: int = None) -> bool:
-        """Gibt True zurück, wenn der User oder der Server gebannt ist."""
+    # --- DAS HERZSTÜCK DES BAN-SYSTEMS ---
+    async def is_banned(self, user_id: int, guild_id: int) -> bool:
+        """Prüft blitzschnell, ob eine ID in der Supabase-Datenbank steht."""
         if user_id == OWNER_ID:
-            return False
+            return False # Du darfst immer alles
             
         if self.db:
             try:
                 u_id = str(user_id)
                 g_id = str(guild_id) if guild_id else "0"
-                
-                # Wir fragen gezielt ab
                 res = self.db.table("bot_bans").select("target_id").in_("target_id", [u_id, g_id]).execute()
                 return len(res.data) > 0
-            except Exception as e:
-                print(f"Check-Fehler: {e}")
+            except:
+                pass # Falls Supabase mal 1 Sekunde laggt, stürzt der Bot nicht ab
         return False
 
+    # --- 1. SCHUTZ FÜR NORMALE TEXT-BEFEHLE (!befehl) ---
+    async def bot_check(self, ctx):
+        if await self.is_banned(ctx.author.id, ctx.guild.id if ctx.guild else None):
+            # Wenn es ein Präfix-Command ist, senden wir eine Nachricht
+            if ctx.interaction is None:
+                await ctx.send("🚫 **Zugriff verweigert:** Du oder dieser Server ist von der Bot-Nutzung ausgeschlossen.", delete_after=5)
+            # Dieser Fehler blockt die Ausführung und wird vom Error-Handler unten leise abgefangen
+            raise commands.CheckFailure("Banned user/server attempted to use a command.")
+        return True
+
     async def setup_hook(self):
-        # 1. CHECK FÜR SLASH-COMMANDS
+        # --- 2. SCHUTZ FÜR SLASH-BEFEHLE (/befehl) ---
         async def global_interaction_check(interaction: discord.Interaction) -> bool:
-            is_banned = await self.check_is_banned(interaction.user.id, interaction.guild_id)
-            if is_banned:
+            if await self.is_banned(interaction.user.id, interaction.guild_id):
                 if not interaction.response.is_done():
-                    await interaction.response.send_message("🚫 Dieser User/Server ist gesperrt.", ephemeral=True)
+                    await interaction.response.send_message("🚫 **Zugriff verweigert:** Dieser User/Server ist gesperrt.", ephemeral=True)
                 return False
             return True
 
         self.tree.interaction_check = global_interaction_check
 
-        # 2. CHECK FÜR PRÄFIX- & HYBRID-COMMANDS (WICHTIG!)
-        @self.check
-        async def global_command_check(ctx):
-            is_banned = await self.check_is_banned(ctx.author.id, ctx.guild.id if ctx.guild else None)
-            if is_banned:
-                await ctx.send("🚫 Zugriff verweigert: Sperre aktiv.", delete_after=5)
-                return False
-            return True
+        # Wir binden den eigenen Error-Handler ein, um die Konsole sauber zu halten
+        self.tree.on_error = self.on_tree_error
 
         # Cogs laden
         base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -92,8 +93,24 @@ class NeonBot(commands.Bot):
 
         await self.tree.sync()
 
+    # --- ERROR-HANDLER: KONSOLE SAUBER HALTEN ---
+    async def on_tree_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        # Ignoriert den "CheckFailure"-Fehler, der entsteht, wenn wir einen gesperrten User blocken
+        if isinstance(error, app_commands.CheckFailure):
+            pass 
+        else:
+            print(f"⚠️ Slash-Command Fehler: {error}")
+
+    async def on_command_error(self, ctx, error):
+        if isinstance(error, commands.CheckFailure):
+            pass 
+        elif isinstance(error, commands.CommandNotFound):
+            pass # Ignoriert Fehler, wenn jemand z.B. "!gibtsnicht" tippt
+        else:
+            print(f"⚠️ Text-Command Fehler: {error}")
+
     async def on_ready(self):
-        print(f"⚡ {self.user.name} bereit!")
+        print(f"⚡ {self.user.name} ist online und komplett geschützt!")
 
 bot = NeonBot()
 
