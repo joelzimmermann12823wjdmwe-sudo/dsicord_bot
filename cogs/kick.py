@@ -13,7 +13,7 @@ class Kick(commands.Cog):
         embed.add_field(name="Grund", value=grund)
         
         try:
-            await ctx.send(embed=embed, ephemeral=True)
+            await member.send(embed=embed)
         except:
             pass
             

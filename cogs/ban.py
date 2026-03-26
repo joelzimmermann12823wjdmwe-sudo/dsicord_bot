@@ -15,7 +15,7 @@ class Ban(commands.Cog):
         embed.set_footer(text="Aktion: Permanent")
         
         try:
-           await ctx.send(embed=embed, ephemeral=True)
+           await member.send(embed=embed)
         except:
             pass
         
