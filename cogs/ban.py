@@ -12,5 +12,5 @@ class Ban(commands.Cog):
         await ctx.send(f"✅ {member.mention} wurde gebannt. Grund: {reason or 'kein Grund angegeben'}.")
 
 
-def setup(bot):
-    bot.add_cog(Ban(bot))
+async def setup(bot):
+    await bot.add_cog(Ban(bot))

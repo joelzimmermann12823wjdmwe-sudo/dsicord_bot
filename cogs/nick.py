@@ -1,3 +1,4 @@
+import discord
 from discord.ext import commands
 
 class Nickname(commands.Cog):
@@ -17,5 +18,5 @@ class Nickname(commands.Cog):
         await ctx.send(f"✅ Nickname von {member.mention} wurde zurückgesetzt.")
 
 
-def setup(bot):
-    bot.add_cog(Nickname(bot))
+async def setup(bot):
+    await bot.add_cog(Nickname(bot))

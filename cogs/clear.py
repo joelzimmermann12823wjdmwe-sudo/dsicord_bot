@@ -1,3 +1,4 @@
+import discord
 from discord.ext import commands
 
 class Clear(commands.Cog):
@@ -11,5 +12,5 @@ class Clear(commands.Cog):
         await ctx.send(f"🧹 {len(deleted) - 1} Nachrichten gelöscht.", delete_after=5)
 
 
-def setup(bot):
-    bot.add_cog(Clear(bot))
+async def setup(bot):
+    await bot.add_cog(Clear(bot))

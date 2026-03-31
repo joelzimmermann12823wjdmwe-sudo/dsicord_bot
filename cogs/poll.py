@@ -1,3 +1,4 @@
+import discord
 from discord.ext import commands
 
 class Poll(commands.Cog):
@@ -11,5 +12,5 @@ class Poll(commands.Cog):
         await message.add_reaction("👎")
 
 
-def setup(bot):
-    bot.add_cog(Poll(bot))
+async def setup(bot):
+    await bot.add_cog(Poll(bot))

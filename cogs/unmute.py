@@ -16,5 +16,5 @@ class Unmute(commands.Cog):
             await ctx.send("⚠️ Der Nutzer ist nicht stummgeschaltet.")
 
 
-def setup(bot):
-    bot.add_cog(Unmute(bot))
+async def setup(bot):
+    await bot.add_cog(Unmute(bot))

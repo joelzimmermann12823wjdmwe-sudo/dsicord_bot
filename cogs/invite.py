@@ -1,3 +1,4 @@
+import discord
 from discord.ext import commands
 
 class Invite(commands.Cog):
@@ -9,5 +10,5 @@ class Invite(commands.Cog):
         await ctx.send("🔗 Einladung: Erstelle einen Bot-Invite-Link in der Discord-Entwicklerkonsole und füge ihn deinem Server hinzu.")
 
 
-def setup(bot):
-    bot.add_cog(Invite(bot))
+async def setup(bot):
+    await bot.add_cog(Invite(bot))

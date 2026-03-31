@@ -1,6 +1,8 @@
 import inspect
 import os
 import sys
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from importlib import import_module
 from pathlib import Path
 
@@ -19,6 +21,25 @@ INTENTS.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=INTENTS, help_command=None)
 bot.storage = Storage(BASE_DIR / "storage.bin")
+
+
+class HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.end_headers()
+        self.wfile.write(b"OK")
+
+    def log_message(self, format, *args):
+        return
+
+
+def start_health_server() -> None:
+    port = int(os.environ.get("PORT", "8000"))
+    server = HTTPServer(("0.0.0.0", port), HealthHandler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    print(f"Health server listening on port {port}")
 
 
 def load_env(path: Path) -> None:
@@ -78,6 +99,7 @@ async def main() -> None:
             "Kein Discord-Token gefunden. Bitte lege DISCORD_TOKEN oder TOKEN in der .env-Datei an."
         )
 
+    start_health_server()
     await load_cogs()
     await bot.start(token)
 

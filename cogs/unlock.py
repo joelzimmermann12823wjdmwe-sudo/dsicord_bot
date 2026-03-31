@@ -13,5 +13,5 @@ class Unlock(commands.Cog):
         await ctx.send(f"🔓 {channel.mention} wurde entsperrt.")
 
 
-def setup(bot):
-    bot.add_cog(Unlock(bot))
+async def setup(bot):
+    await bot.add_cog(Unlock(bot))

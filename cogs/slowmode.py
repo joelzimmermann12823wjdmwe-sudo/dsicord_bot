@@ -1,3 +1,4 @@
+import discord
 from discord.ext import commands
 
 class Slowmode(commands.Cog):
@@ -11,5 +12,5 @@ class Slowmode(commands.Cog):
         await ctx.send(f"🐢 Slowmode wurde auf {seconds} Sekunden gesetzt.")
 
 
-def setup(bot):
-    bot.add_cog(Slowmode(bot))
+async def setup(bot):
+    await bot.add_cog(Slowmode(bot))

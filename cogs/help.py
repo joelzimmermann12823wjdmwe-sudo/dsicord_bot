@@ -1,3 +1,4 @@
+import discord
 from discord.ext import commands
 
 class Help(commands.Cog):
@@ -14,5 +15,5 @@ class Help(commands.Cog):
         await ctx.send("📘 Verfügbare Befehle:\n" + "\n".join(commands_list))
 
 
-def setup(bot):
-    bot.add_cog(Help(bot))
+async def setup(bot):
+    await bot.add_cog(Help(bot))

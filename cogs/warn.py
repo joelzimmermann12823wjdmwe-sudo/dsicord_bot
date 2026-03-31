@@ -19,5 +19,5 @@ class Warn(commands.Cog):
         )
 
 
-def setup(bot):
-    bot.add_cog(Warn(bot))
+async def setup(bot):
+    await bot.add_cog(Warn(bot))

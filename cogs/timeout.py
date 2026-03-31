@@ -12,5 +12,5 @@ class Timeout(commands.Cog):
         await ctx.send(f"✅ {member.mention} wurde für {duration} Minuten in Timeout geschickt.")
 
 
-def setup(bot):
-    bot.add_cog(Timeout(bot))
+async def setup(bot):
+    await bot.add_cog(Timeout(bot))

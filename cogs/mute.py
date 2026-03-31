@@ -19,5 +19,5 @@ class Mute(commands.Cog):
         await ctx.send(f"✅ {member.mention} wurde stummgeschaltet.")
 
 
-def setup(bot):
-    bot.add_cog(Mute(bot))
+async def setup(bot):
+    await bot.add_cog(Mute(bot))

@@ -1,3 +1,4 @@
+import discord
 from discord.ext import commands
 
 class Say(commands.Cog):
@@ -11,5 +12,5 @@ class Say(commands.Cog):
         await ctx.send(message)
 
 
-def setup(bot):
-    bot.add_cog(Say(bot))
+async def setup(bot):
+    await bot.add_cog(Say(bot))

@@ -12,5 +12,5 @@ class Kick(commands.Cog):
         await ctx.send(f"✅ {member.mention} wurde gekickt. Grund: {reason or 'kein Grund angegeben'}.")
 
 
-def setup(bot):
-    bot.add_cog(Kick(bot))
+async def setup(bot):
+    await bot.add_cog(Kick(bot))
