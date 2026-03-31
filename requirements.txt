@@ -1,7 +1,1 @@
 ﻿discord.py
-flask
-python-dotenv
-requests
-postgrest
-gotrue
-gunicorn
