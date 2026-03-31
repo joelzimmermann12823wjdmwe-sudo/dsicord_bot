@@ -2,11 +2,13 @@ import inspect
 import os
 import sys
 import threading
+import traceback
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from importlib import import_module
 from pathlib import Path
 
 import discord
+from discord import app_commands
 from discord.ext import commands
 
 from storage import Storage
@@ -68,6 +70,24 @@ async def on_ready() -> None:
         print(f"{len(synced)} Slash-Befehle synchronisiert.")
     except Exception as exc:
         print("Fehler beim Synchronisieren der Slash-Befehle:", exc, file=sys.stderr)
+
+@bot.tree.error
+async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
+    if isinstance(error, app_commands.MissingPermissions):
+        message = "❌ Du hast nicht die nötigen Berechtigungen für diesen Befehl."
+    else:
+        message = "⚠️ Es ist ein Fehler aufgetreten. Bitte versuche es später erneut."
+
+    print("App-Command-Fehler:", file=sys.stderr)
+    traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
+
+    try:
+        if interaction.response.is_done():
+            await interaction.followup.send(message, ephemeral=True)
+        else:
+            await interaction.response.send_message(message, ephemeral=True)
+    except Exception:
+        pass
 
 
 async def load_cogs() -> None:

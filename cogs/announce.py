@@ -1,12 +1,19 @@
-﻿import discord
+﻿import re
+import discord
 from discord.ext import commands
 from discord import ui, app_commands
 
-# --- 1. DAS FORMULAR (MODAL) ---
 class AnnounceModal(ui.Modal):
-    def __init__(self, roles_to_ping):
+    def __init__(self):
         super().__init__(title="Neon Bot | Ankündigung erstellen")
-        self.roles_to_ping = roles_to_ping # Liste der ausgewählten Rollen
+
+    role_ids = ui.TextInput(
+        label="Rollen-IDs zum Pingen (oben)",
+        placeholder="123456789012345678, 876543210987654321",
+        style=discord.TextStyle.short,
+        required=False,
+        max_length=2000
+    )
 
     titel = ui.TextInput(
         label="Überschrift",
@@ -17,7 +24,7 @@ class AnnounceModal(ui.Modal):
     
     inhalt = ui.TextInput(
         label="Inhalt der Ankündigung",
-        placeholder="Schreibe hier deinen Text... (Rollen-Erwähnungen funktionieren hier auch)",
+        placeholder="Schreibe hier deinen Text...",
         style=discord.TextStyle.long,
         required=True,
         max_length=2000
@@ -38,74 +45,70 @@ class AnnounceModal(ui.Modal):
     )
 
     async def on_submit(self, interaction: discord.Interaction):
-        # Erstelle die Erwähnungen für außerhalb des Embeds
-        ping_content = ""
-        if self.roles_to_ping:
-            ping_content = " ".join([role.mention for role in self.roles_to_ping])
+        await interaction.response.defer(ephemeral=True)
 
-        # Embed erstellen
+        ping_content = ""
+        if self.role_ids.value:
+            role_ids = re.findall(r"\d{17,19}", self.role_ids.value)
+            ping_roles = []
+            for role_id in role_ids:
+                role = interaction.guild.get_role(int(role_id)) if interaction.guild else None
+                if role:
+                    ping_roles.append(role.mention)
+
+            if ping_roles:
+                ping_content = " ".join(ping_roles)
+
         embed = discord.Embed(
             title=self.titel.value,
             description=self.inhalt.value,
-            color=discord.Color.from_rgb(0, 212, 255) # Neon Blau
+            color=discord.Color.from_rgb(0, 212, 255)
         )
 
-        # Bild setzen
         if self.bild_url.value and self.bild_url.value.startswith("http"):
             embed.set_image(url=self.bild_url.value)
 
-        # Footer / Autor
+        footer_text = f"Ankündigung • {interaction.guild.name}" if interaction.guild else "Ankündigung"
         if self.autor.value:
-            embed.set_footer(text=f"Von: {self.autor.value} • {interaction.guild.name}")
+            embed.set_footer(text=f"Von: {self.autor.value} • {footer_text}")
         else:
-            embed.set_footer(text=f"Ankündigung • {interaction.guild.name}")
-        
+            embed.set_footer(text=footer_text)
+
         embed.timestamp = discord.utils.utcnow()
 
-        # Nachricht im Kanal senden (Pings + Embed)
-        await interaction.channel.send(content=ping_content, embed=embed)
-        
-        # Bestätigung nur für den Admin
-        await interaction.response.send_message("✅ Ankündigung wurde erfolgreich veröffentlicht!", ephemeral=True)
+        channel = interaction.channel or (interaction.guild.system_channel if interaction.guild else None)
+        if channel is None:
+            await interaction.followup.send(
+                "⚠️ Kanal nicht gefunden. Die Ankündigung konnte nicht gesendet werden.",
+                ephemeral=True
+            )
+            return
 
-# --- 2. DAS AUSWAHL-MENÜ (VIEW) ---
-class AnnounceSetupView(ui.View):
-    def __init__(self, bot):
-        super().__init__(timeout=300)
-        self.bot = bot
-        self.selected_roles = []
+        try:
+            if ping_content:
+                await channel.send(content=ping_content, embed=embed)
+            else:
+                await channel.send(embed=embed)
 
-    # Rollen-Auswahlmenü (Mehrfachauswahl möglich)
-    @ui.select(cls=ui.RoleSelect, placeholder="Wähle die Rollen zum Pingen aus...", min_values=0, max_values=5)
-    async def select_roles(self, interaction: discord.Interaction, select: ui.RoleSelect):
-        self.selected_roles = select.values
-        await interaction.response.send_message(f"✅ {len(self.selected_roles)} Rollen zum Pingen vorgemerkt.", ephemeral=True)
+            await interaction.followup.send(
+                "✅ Deine Ankündigung wurde erfolgreich veröffentlicht.",
+                ephemeral=True
+            )
+        except Exception as exc:
+            await interaction.followup.send(
+                "⚠️ Beim Senden der Ankündigung ist ein Fehler aufgetreten.",
+                ephemeral=True
+            )
+            raise exc
 
-    # Button zum Öffnen des Formulars
-    @ui.button(label="Inhalt schreiben", style=discord.ButtonStyle.primary, emoji="✍️")
-    async def open_modal(self, interaction: discord.Interaction):
-        await interaction.response.send_modal(AnnounceModal(self.selected_roles))
-
-# --- 3. DER COMMAND ---
 class Announce(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @app_commands.command(name="ankündigung", description="Erstellt eine Ankündigung mit Rollen-Pings.")
+    @app_commands.command(name="ankündigung", description="Erstellt eine Ankündigung mit Rollen-ID zum Pingen.")
     @app_commands.checks.has_permissions(administrator=True)
     async def announce(self, interaction: discord.Interaction):
-        # Das Setup-Menü ist NUR für den Admin sichtbar (ephemeral)
-        embed = discord.Embed(
-            title="📢 Ankündigungs-Konfigurator",
-            description=(
-                "1. Wähle unten im Menü die Rollen aus, die gepingt werden sollen.\n"
-                "2. Klicke dann auf den Button, um den Text zu schreiben.\n\n"
-                "*Hinweis: Du kannst Rollen-Erwähnungen auch direkt in den Text schreiben.*"
-            ),
-            color=discord.Color.from_rgb(0, 212, 255)
-        )
-        view = AnnounceSetupView(self.bot)
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        await interaction.response.send_modal(AnnounceModal())
 
 async def setup(bot):
     await bot.add_cog(Announce(bot))
