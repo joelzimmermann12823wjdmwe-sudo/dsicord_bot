@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}Neon Bot | Dashboard{% endblock %}
+{% block page_id %}guilds{% endblock %}
+
+{% set stats = namespace(active=0) %}
+{% for guild in guilds %}
+    {% if guild.bot_in %}
+        {% set stats.active = stats.active + 1 %}
+    {% endif %}
+{% endfor %}
+
+{% block topbar_actions %}
+    <span class="pill">Eingeloggt als {{ user.username }}</span>
+    <a class="btn btn-secondary" href="{{ url_for('logout') }}">Logout</a>
+{% endblock %}
+
+{% block content %}
+<section class="panel page-hero reveal" data-tilt>
+    <div class="hero-grid">
+        <div class="hero-copy">
+            <span class="eyebrow">Guild Uebersicht</span>
+            <h1>Steuere deine Server ohne Discord-Menue-Chaos.</h1>
+            <p>
+                Filtere nach Namen, pruefe sofort den Bot-Status und springe direkt in die passende
+                Konfiguration. Alles ist auf kurze Wege und schnelles Scannen ausgelegt.
+            </p>
+            <label class="search-shell">
+                <span class="search-label">Server suchen</span>
+                <input class="search-input" type="search" placeholder="Nach Servernamen filtern..." data-guild-search>
+            </label>
+        </div>
+
+        <aside class="inset-panel stat-grid reveal">
+            <article class="stat-card">
+                <span class="stat-label">Admin Server</span>
+                <span class="stat-value">{{ guilds|length }}</span>
+            </article>
+            <article class="stat-card">
+                <span class="stat-label">Bot aktiv</span>
+                <span class="stat-value">{{ stats.active }}</span>
+            </article>
+            <article class="stat-card">
+                <span class="stat-label">Bot fehlt</span>
+                <span class="stat-value">{{ (guilds|length) - stats.active }}</span>
+            </article>
+            <article class="stat-card">
+                <span class="stat-label">Sichtbar</span>
+                <span class="stat-value" data-visible-count>{{ guilds|length }}</span>
+            </article>
+        </aside>
+    </div>
+</section>
+
+<section class="panel section-card reveal">
+    <div class="section-head">
+        <div>
+            <span class="eyebrow">Filter</span>
+            <h2>Serverliste</h2>
+            <p>Zeige alle Server, nur aktive Bot-Instanzen oder nur fehlende Installationen an.</p>
+        </div>
+        <div class="inline-toolbar">
+            <button class="filter-chip is-active" type="button" data-guild-filter="all">Alle</button>
+            <button class="filter-chip" type="button" data-guild-filter="active">Bot aktiv</button>
+            <button class="filter-chip" type="button" data-guild-filter="missing">Bot fehlt</button>
+        </div>
+    </div>
+
+    {% if guilds %}
+    <div class="guild-grid" data-guild-grid>
+        {% for guild in guilds %}
+        <article
+            class="panel guild-card reveal"
+            data-tilt
+            data-guild-card
+            data-guild-name="{{ guild.name|lower }}"
+            data-bot-state="{% if guild.bot_in %}active{% else %}missing{% endif %}"
+        >
+            <div class="guild-card-header">
+                <div class="guild-card-title">
+                    <div>
+                        <span class="eyebrow">Discord Server</span>
+                        <h3>{{ guild.name }}</h3>
+                    </div>
+                    {% if guild.bot_in %}
+                    <span class="pill pill-success">Bot aktiv</span>
+                    {% else %}
+                    <span class="pill pill-danger">Bot fehlt</span>
+                    {% endif %}
+                </div>
+                <p>Direkter Einstieg in die passende Konfigurationsansicht fuer diesen Server.</p>
+            </div>
+
+            <div class="guild-card-meta">
+                <div class="meta-block">
+                    <span class="meta-label">Server ID</span>
+                    <code>{{ guild.id }}</code>
+                </div>
+                <div class="meta-block">
+                    <span class="meta-label">Status</span>
+                    <span>{% if guild.bot_in %}Dashboard verfuegbar{% else %}Bot zuerst einladen{% endif %}</span>
+                </div>
+            </div>
+
+            <div class="guild-actions">
+                <button type="button" class="icon-btn" data-copy="{{ guild.id }}" data-copy-label="Server-ID">
+                    ID kopieren
+                </button>
+                {% if guild.bot_in %}
+                <a class="btn btn-primary" href="{{ url_for('server_page', guild_id=guild.id) }}">Server oeffnen</a>
+                {% else %}
+                <span class="btn btn-secondary">Noch kein Dashboard-Zugriff</span>
+                {% endif %}
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <article class="panel content-card empty-state reveal">
+        <span class="eyebrow">Keine Treffer</span>
+        <h2>Aktuell wurden keine passenden Server gefunden.</h2>
+        <p>Entweder hat der Account keine Administrator-Server oder Discord hat keine Guild-Liste geliefert.</p>
+    </article>
+    {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(() => {
+    const searchInput = document.querySelector("[data-guild-search]");
+    const filterButtons = Array.from(document.querySelectorAll("[data-guild-filter]"));
+    const cards = Array.from(document.querySelectorAll("[data-guild-card]"));
+    const visibleCount = document.querySelector("[data-visible-count]");
+
+    if (!searchInput || !cards.length) {
+        return;
+    }
+
+    let activeFilter = "all";
+
+    const applyFilters = () => {
+        const term = searchInput.value.trim().toLowerCase();
+        let visible = 0;
+
+        cards.forEach((card) => {
+            const name = card.dataset.guildName || "";
+            const state = card.dataset.botState || "missing";
+            const matchesSearch = !term || name.includes(term);
+            const matchesState = activeFilter === "all" || state === activeFilter;
+            const show = matchesSearch && matchesState;
+
+            card.classList.toggle("is-hidden", !show);
+            if (show) {
+                visible += 1;
+            }
+        });
+
+        if (visibleCount) {
+            visibleCount.textContent = String(visible);
+        }
+    };
+
+    searchInput.addEventListener("input", applyFilters);
+
+    filterButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+            activeFilter = button.dataset.guildFilter || "all";
+            filterButtons.forEach((item) => item.classList.toggle("is-active", item === button));
+            applyFilters();
+        });
+    });
+
+    applyFilters();
+})();
+</script>
+{% endblock %}
