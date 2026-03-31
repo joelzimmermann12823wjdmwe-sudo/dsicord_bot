@@ -6,7 +6,7 @@ class Unmute(commands.Cog):
         self.bot = bot
 
     @commands.has_permissions(manage_roles=True)
-    @commands.hybrid_command(name="unmute")
+    @commands.hybrid_command(name="unmute", description="Hebt die Stummschaltung eines Nutzers auf.")
     async def unmute(self, ctx: commands.Context, member: discord.Member):
         muted_role = discord.utils.get(ctx.guild.roles, name="Muted")
         if muted_role and muted_role in member.roles:

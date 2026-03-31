@@ -5,7 +5,7 @@ class SyncFix(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.hybrid_command(name="fixsync")
+    @commands.hybrid_command(name="fixsync", description="Synchronisiert und bereinigt lokale Slash-Befehle.")
     @commands.is_owner()
     async def fixsync(self, ctx):
         """Löscht alle lokalen Server-Befehle, um Dopplungen zu vermeiden."""

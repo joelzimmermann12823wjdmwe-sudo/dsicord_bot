@@ -19,7 +19,7 @@ INTENTS.guilds = True
 INTENTS.members = True
 INTENTS.message_content = True
 
-bot = commands.Bot(command_prefix="!", intents=INTENTS, help_command=None)
+bot = commands.Bot(command_prefix="!", intents=INTENTS, help_command=None, activity=discord.Game(name="/help | !help"))
 bot.storage = Storage(BASE_DIR / "storage.bin")
 
 

@@ -6,7 +6,7 @@ class Say(commands.Cog):
         self.bot = bot
 
     @commands.has_permissions(manage_messages=True)
-    @commands.hybrid_command(name="say")
+    @commands.hybrid_command(name="say", description="Lässt den Bot eine Nachricht senden.")
     async def say(self, ctx: commands.Context, *, message: str):
         await ctx.message.delete()
         await ctx.send(message)

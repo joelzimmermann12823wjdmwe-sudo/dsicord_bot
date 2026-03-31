@@ -6,7 +6,7 @@ class Mute(commands.Cog):
         self.bot = bot
 
     @commands.has_permissions(manage_roles=True)
-    @commands.hybrid_command(name="mute")
+    @commands.hybrid_command(name="mute", description="Schaltet einen Nutzer stumm.")
     async def mute(self, ctx: commands.Context, member: discord.Member, *, reason: str = None):
         if not discord.utils.get(ctx.guild.roles, name="Muted"):
             muted_role = await ctx.guild.create_role(name="Muted")

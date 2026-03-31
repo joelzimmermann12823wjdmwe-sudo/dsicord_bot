@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from helpers import create_embed
 
 class Help(commands.Cog):
     def __init__(self, bot):
@@ -7,12 +8,27 @@ class Help(commands.Cog):
 
     @commands.hybrid_command(name="help", description="Listet alle verfügbaren Befehle auf.")
     async def help_command(self, ctx: commands.Context):
-        commands_list = [
-            "ban, kick, mute, unmute, timeout, warn, clear, lock, unlock, slowmode",
-            "addrole, removerole, nick, resetnick",
-            "ping, serverinfo, userinfo, avatar, invite, poll, say",
-        ]
-        await ctx.send("📘 Verfügbare Befehle:\n" + "\n".join(commands_list))
+        embed = create_embed(
+            title="📘 Hilfe",
+            description="Hier findest du eine Übersicht über die verfügbaren Befehle.",
+            footer="Spielt /help | !help",
+        )
+        embed.add_field(
+            name="Moderation",
+            value="/ban, /kick, /mute, /unmute, /timeout, /warn, /clear, /lock, /unlock, /slowmode",
+            inline=False,
+        )
+        embed.add_field(
+            name="Rollen & Nutzer",
+            value="/addrole, /removerole, /nick, /resetnick, /avatar, /userinfo",
+            inline=False,
+        )
+        embed.add_field(
+            name="Sonstiges",
+            value="/ping, /serverinfo, /invite, /poll, /say, /help",
+            inline=False,
+        )
+        await ctx.send(embed=embed)
 
 
 async def setup(bot):

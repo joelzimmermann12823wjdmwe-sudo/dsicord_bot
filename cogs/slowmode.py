@@ -6,7 +6,7 @@ class Slowmode(commands.Cog):
         self.bot = bot
 
     @commands.has_permissions(manage_channels=True)
-    @commands.hybrid_command(name="slowmode")
+    @commands.hybrid_command(name="slowmode", description="Setzt den Slowmode für diesen Kanal.")
     async def slowmode(self, ctx: commands.Context, seconds: int = 0):
         await ctx.channel.edit(slowmode_delay=seconds)
         await ctx.send(f"🐢 Slowmode wurde auf {seconds} Sekunden gesetzt.")

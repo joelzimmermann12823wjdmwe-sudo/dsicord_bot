@@ -5,7 +5,7 @@ class Poll(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.hybrid_command(name="poll")
+    @commands.hybrid_command(name="poll", description="Erstellt eine Umfrage mit Ja/Nein-Reaktionen.")
     async def poll(self, ctx: commands.Context, *, question: str):
         message = await ctx.send(f"📊 Umfrage: {question}")
         await message.add_reaction("👍")
