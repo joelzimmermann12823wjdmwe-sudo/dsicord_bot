@@ -68,7 +68,7 @@ class AnnounceModal(ui.Modal):
         if self.bild_url.value and self.bild_url.value.startswith("http"):
             embed.set_image(url=self.bild_url.value)
 
-        footer_text = f"Ankündigung • {interaction.guild.name}" if interaction.guild else "Ankündigung"
+        footer_text = f"Ankündigung • {interaction.guild.name}" if interaction.guild else "Neon Bot"
         if self.autor.value:
             embed.set_footer(text=f"Von: {self.autor.value} • {footer_text}")
         else:

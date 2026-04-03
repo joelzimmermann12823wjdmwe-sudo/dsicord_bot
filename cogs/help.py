@@ -11,11 +11,11 @@ class Help(commands.Cog):
         embed = create_embed(
             title="📘 Hilfe",
             description="Hier findest du eine Übersicht über die verfügbaren Befehle.",
-            footer="Spielt /help | !help",
+            footer="/help | !help",
         )
         embed.add_field(
             name="Moderation",
-            value="/ban, /kick, /mute, /unmute, /timeout, /warn, /clear, /lock, /unlock, /slowmode",
+            value="/ban, /kick, /mute, /unmute, /timeout, /warn, /warns, /clear, /lock, /unlock, /slowmode",
             inline=False,
         )
         embed.add_field(

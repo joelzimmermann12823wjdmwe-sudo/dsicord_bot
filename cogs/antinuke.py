@@ -71,7 +71,7 @@ class AntiNuke(commands.Cog):
             try:
                 owner = await guild.fetch_member(guild.owner_id)
             except Exception:
-                owner = None
+                owner = None 
 
         if owner:
             try:

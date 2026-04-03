@@ -10,6 +10,7 @@ from pathlib import Path
 import discord
 from discord import app_commands
 from discord.ext import commands
+from dotenv import load_dotenv
 
 from storage import Storage
 
@@ -22,7 +23,11 @@ INTENTS.members = True
 INTENTS.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=INTENTS, help_command=None, activity=discord.Game(name="/help | !help"))
-bot.storage = Storage(BASE_DIR / "storage.bin")
+bot.storage = Storage()
+
+# Lade Permissions von Supabase
+bot.permissions = bot.storage.get_permissions()
+bot.save_permissions = lambda: bot.storage.save_permissions(bot.permissions)
 
 
 class HealthHandler(BaseHTTPRequestHandler):
@@ -90,6 +95,56 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
         pass
 
 
+@bot.check
+async def global_check(ctx):
+    # Check banned servers
+    if ctx.guild and ctx.guild.id in bot.permissions.get("banned_servers", []):
+        if ctx.command and ctx.command.name not in ["help"]:
+            # Nachricht an owner
+            owner = ctx.guild.owner
+            if owner:
+                try:
+                    embed = discord.Embed(title="Server gesperrt", description=f"Dein Server {ctx.guild.name} ist gesperrt. Commands sind deaktiviert außer help.", color=discord.Color.red())
+                    await owner.send(embed=embed)
+                except:
+                    pass
+            return False
+    # Check banned users
+    if ctx.author.id in bot.permissions.get("banned_users", []):
+        if ctx.command and ctx.command.name not in ["help"]:
+            try:
+                embed = discord.Embed(title="User gesperrt", description="Du bist gesperrt. Commands sind deaktiviert außer help.", color=discord.Color.red())
+                await ctx.author.send(embed=embed)
+            except:
+                pass
+            return False
+    return True
+
+
+@bot.tree.check
+async def global_slash_check(interaction):
+    guild = interaction.guild
+    if guild and guild.id in bot.permissions.get("banned_servers", []):
+        if interaction.command and interaction.command.name not in ["help"]:
+            owner = guild.owner
+            if owner:
+                try:
+                    embed = discord.Embed(title="Server gesperrt", description=f"Dein Server {guild.name} ist gesperrt. Commands sind deaktiviert außer help.", color=discord.Color.red())
+                    await owner.send(embed=embed)
+                except:
+                    pass
+            return False
+    if interaction.user.id in bot.permissions.get("banned_users", []):
+        if interaction.command and interaction.command.name not in ["help"]:
+            try:
+                embed = discord.Embed(title="User gesperrt", description="Du bist gesperrt. Commands sind deaktiviert außer help.", color=discord.Color.red())
+                await interaction.user.send(embed=embed)
+            except:
+                pass
+            return False
+    return True
+
+
 async def load_cogs() -> None:
     for cog_path in sorted(COGS_DIR.glob("*.py")):
         if cog_path.name.startswith("_"):
@@ -112,7 +167,10 @@ async def load_cogs() -> None:
 
 
 async def main() -> None:
+    # Lade .env Datei
+    load_dotenv(BASE_DIR / ".env")
     load_env(BASE_DIR / ".env")
+    
     token = os.getenv("DISCORD_TOKEN") or os.getenv("TOKEN")
     if not token:
         raise RuntimeError(
