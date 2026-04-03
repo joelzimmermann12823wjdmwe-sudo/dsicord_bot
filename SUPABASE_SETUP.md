@@ -61,6 +61,9 @@ Klicke `RUN` und bestätige.
 
 ### 5. **Bot starten**
 ```bash
+# Render verwendet standardmäßig 3.14; daher in Render explizit 3.13 wählen!
+# Datei render.yaml oder Build-Einstellungen konfigurieren:
+# python_version: 3.13.9
 python main.py
 ```
 
