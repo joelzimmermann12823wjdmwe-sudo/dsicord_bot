@@ -56,5 +56,45 @@ class Owner(commands.Cog):
         else:
             await ctx.send("❌ User nicht gebannt.")
 
+    @commands.hybrid_command(name="add_bot_admin", description="Fügt einen Bot-Admin hinzu.")
+    @commands.is_owner()
+    async def add_bot_admin(self, ctx, user_id: int):
+        if user_id not in self.bot.permissions["admins"]:
+            self.bot.permissions["admins"].append(user_id)
+            self.bot.save_permissions()
+            await ctx.send(f"✅ Admin {user_id} hinzugefügt.")
+        else:
+            await ctx.send("❌ User ist bereits Admin.")
+
+    @commands.hybrid_command(name="remove_bot_admin", description="Entfernt einen Bot-Admin.")
+    @commands.is_owner()
+    async def remove_bot_admin(self, ctx, user_id: int):
+        if user_id in self.bot.permissions["admins"]:
+            self.bot.permissions["admins"].remove(user_id)
+            self.bot.save_permissions()
+            await ctx.send(f"✅ Admin {user_id} entfernt.")
+        else:
+            await ctx.send("❌ User ist kein Admin.")
+
+    @commands.hybrid_command(name="add_bot_developer", description="Fügt einen Bot-Developer hinzu.")
+    @commands.is_owner()
+    async def add_bot_developer(self, ctx, user_id: int):
+        if user_id not in self.bot.permissions["developers"]:
+            self.bot.permissions["developers"].append(user_id)
+            self.bot.save_permissions()
+            await ctx.send(f"✅ Developer {user_id} hinzugefügt.")
+        else:
+            await ctx.send("❌ User ist bereits Developer.")
+
+    @commands.hybrid_command(name="remove_bot_developer", description="Entfernt einen Bot-Developer.")
+    @commands.is_owner()
+    async def remove_bot_developer(self, ctx, user_id: int):
+        if user_id in self.bot.permissions["developers"]:
+            self.bot.permissions["developers"].remove(user_id)
+            self.bot.save_permissions()
+            await ctx.send(f"✅ Developer {user_id} entfernt.")
+        else:
+            await ctx.send("❌ User ist kein Developer.")
+
 async def setup(bot):
     await bot.add_cog(Owner(bot))
