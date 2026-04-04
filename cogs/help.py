@@ -25,10 +25,33 @@ class Help(commands.Cog):
         )
         embed.add_field(
             name="Sonstiges",
-            value="/ping, /serverinfo, /invite, /poll, /say, /help",
+            value="/ping, /serverinfo, /invite, /poll, /say, /help, /dbcheck",
             inline=False,
         )
         await ctx.send(embed=embed)
+
+    @commands.hybrid_command(name="dbcheck", description="Testet die Datenbank-Verbindung.")
+    async def dbcheck(self, ctx: commands.Context):
+        try:
+            perms = self.bot.storage.get_permissions()
+            embed = create_embed(
+                title="🗄️ Datenbank-Check",
+                description="✅ Verbindung erfolgreich!",
+                footer="Permissions geladen",
+            )
+            embed.add_field(name="Owner", value=str(len(perms.get("owner", []))), inline=True)
+            embed.add_field(name="Admins", value=str(len(perms.get("admins", []))), inline=True)
+            embed.add_field(name="Developers", value=str(len(perms.get("developers", []))), inline=True)
+            embed.add_field(name="Gebannte Server", value=str(len(perms.get("banned_servers", []))), inline=True)
+            embed.add_field(name="Gebannte User", value=str(len(perms.get("banned_users", []))), inline=True)
+            await ctx.send(embed=embed)
+        except Exception as e:
+            embed = create_embed(
+                title="🗄️ Datenbank-Fehler",
+                description=f"❌ Fehler: {str(e)}",
+                footer="Prüfe .env und Supabase",
+            )
+            await ctx.send(embed=embed)
 
 
 async def setup(bot):
