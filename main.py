@@ -121,7 +121,7 @@ async def global_check(ctx):
     return True
 
 
-@bot.tree.before_invoke
+@bot.tree.interaction_check
 async def global_slash_check(interaction):
     guild = interaction.guild
     cmd_name = interaction.command.name if interaction.command else None
@@ -135,7 +135,7 @@ async def global_slash_check(interaction):
                     await owner.send(embed=embed)
                 except:
                     pass
-            raise app_commands.CheckFailure("Server gesperrt")
+            return False
 
     if interaction.user.id in bot.permissions.get("banned_users", []):
         if cmd_name not in ["help"]:
@@ -144,7 +144,8 @@ async def global_slash_check(interaction):
                 await interaction.user.send(embed=embed)
             except:
                 pass
-            raise app_commands.CheckFailure("User gesperrt")
+            return False
+    return True
 
 
 async def load_cogs() -> None:
