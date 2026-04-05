@@ -1,6 +1,43 @@
-import discord
 from discord.ext import commands
+
 from helpers import create_embed
+
+
+HELP_CATEGORIES = [
+    (
+        "Moderation",
+        "/ban, /kick, /softban, /unban, /mute, /unmute, /timeout, /warn, /warns, /clear, /lock, /unlock, /slowmode",
+    ),
+    (
+        "Voice",
+        "/vckick, /vcmute, /vcunmute",
+    ),
+    (
+        "Rollen & Nutzer",
+        "/addrole, /removerole, /nick, /resetnick, /avatar, /userinfo",
+    ),
+    (
+        "Tools",
+        "/poll, /say, /ankündigung, /invite",
+    ),
+    (
+        "Infos",
+        "/help, /ping, /serverinfo, /status_bot, /dbcheck",
+    ),
+    (
+        "Bot-Team",
+        "/owner, /fixsync, /test_cmd, /ban_server, /unban_server, /ban_user, /unban_user, /add_bot_admin, /remove_bot_admin, /add_bot_developer, /remove_bot_developer",
+    ),
+]
+
+HELP_LINKS = [
+    "Website: https://neon-bot-2026.vercel.app/",
+    "Nutzungsbedingungen: https://neon-bot-2026.vercel.app/terms",
+    "Datenschutz: https://neon-bot-2026.vercel.app/privacy",
+    "Kontakt: https://neon-bot-2026.vercel.app/contact",
+    "Support Discord: https://discord.gg/b5RetTqM",
+]
+
 
 class Help(commands.Cog):
     def __init__(self, bot):
@@ -10,24 +47,23 @@ class Help(commands.Cog):
     async def help_command(self, ctx: commands.Context):
         embed = create_embed(
             title="📘 Hilfe",
-            description="Hier findest du eine Übersicht über die verfügbaren Befehle.",
+            description="Hier findest du alle Befehle nach Kategorien sortiert.",
             footer="/help | !help",
         )
+
+        for category_name, category_commands in HELP_CATEGORIES:
+            embed.add_field(
+                name=category_name,
+                value=category_commands,
+                inline=False,
+            )
+
         embed.add_field(
-            name="Moderation",
-            value="/ban, /kick, /mute, /unmute, /timeout, /warn, /warns, /clear, /lock, /unlock, /slowmode",
+            name="Links",
+            value="\n".join(HELP_LINKS),
             inline=False,
         )
-        embed.add_field(
-            name="Rollen & Nutzer",
-            value="/addrole, /removerole, /nick, /resetnick, /avatar, /userinfo",
-            inline=False,
-        )
-        embed.add_field(
-            name="Sonstiges",
-            value="/ping, /serverinfo, /invite, /poll, /say, /help, /dbcheck",
-            inline=False,
-        )
+
         await ctx.send(embed=embed)
 
     @commands.hybrid_command(name="dbcheck", description="Testet die Datenbank-Verbindung.")
