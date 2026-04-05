@@ -1,13 +1,13 @@
 ﻿import discord
 from discord.ext import commands
-from checks import is_admin_or_developer
+from checks import is_admin_or_developer, is_owner
 
 class Owner(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
     @commands.hybrid_command(name="owner", description="Exklusive Befehle für den Bot-Entwickler.")
-    @commands.is_owner()
+    @is_owner()
     async def owner(self, ctx):
         await ctx.send("👑 Willkommen Meister. Alle Systeme laufen reibungslos.")
 
@@ -52,7 +52,7 @@ class Owner(commands.Cog):
             await ctx.send("❌ User nicht gebannt.")
 
     @commands.hybrid_command(name="add_bot_admin", description="Fügt einen Bot-Admin hinzu.")
-    @commands.is_owner()
+    @is_owner()
     async def add_bot_admin(self, ctx, user_id: int):
         if user_id not in self.bot.permissions["admins"]:
             self.bot.permissions["admins"].append(user_id)
@@ -62,7 +62,7 @@ class Owner(commands.Cog):
             await ctx.send("❌ User ist bereits Admin.")
 
     @commands.hybrid_command(name="remove_bot_admin", description="Entfernt einen Bot-Admin.")
-    @commands.is_owner()
+    @is_owner()
     async def remove_bot_admin(self, ctx, user_id: int):
         if user_id in self.bot.permissions["admins"]:
             self.bot.permissions["admins"].remove(user_id)
@@ -72,7 +72,7 @@ class Owner(commands.Cog):
             await ctx.send("❌ User ist kein Admin.")
 
     @commands.hybrid_command(name="add_bot_developer", description="Fügt einen Bot-Developer hinzu.")
-    @commands.is_owner()
+    @is_owner()
     async def add_bot_developer(self, ctx, user_id: int):
         if user_id not in self.bot.permissions["developers"]:
             self.bot.permissions["developers"].append(user_id)
@@ -82,7 +82,7 @@ class Owner(commands.Cog):
             await ctx.send("❌ User ist bereits Developer.")
 
     @commands.hybrid_command(name="remove_bot_developer", description="Entfernt einen Bot-Developer.")
-    @commands.is_owner()
+    @is_owner()
     async def remove_bot_developer(self, ctx, user_id: int):
         if user_id in self.bot.permissions["developers"]:
             self.bot.permissions["developers"].remove(user_id)
