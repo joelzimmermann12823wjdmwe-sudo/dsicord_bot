@@ -1,15 +1,10 @@
 ﻿import discord
 from discord.ext import commands
+from checks import is_admin_or_developer
 
 class Owner(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-
-    def is_admin_or_developer(self):
-        async def predicate(ctx):
-            user_id = ctx.author.id
-            return user_id in self.bot.permissions.get("admins", []) or user_id in self.bot.permissions.get("developers", [])
-        return commands.check(predicate)
 
     @commands.hybrid_command(name="owner", description="Exklusive Befehle für den Bot-Entwickler.")
     @commands.is_owner()

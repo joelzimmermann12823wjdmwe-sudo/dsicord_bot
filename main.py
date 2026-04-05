@@ -22,7 +22,18 @@ INTENTS.guilds = True
 INTENTS.members = True
 INTENTS.message_content = True
 
-bot = commands.Bot(command_prefix="!", intents=INTENTS, help_command=None, activity=discord.Game(name="/help | !help"))
+class BotCommandTree(app_commands.CommandTree):
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        return await global_slash_check(interaction)
+
+
+bot = commands.Bot(
+    command_prefix="!",
+    intents=INTENTS,
+    help_command=None,
+    activity=discord.Game(name="/help | !help"),
+    tree_cls=BotCommandTree,
+)
 bot.storage = None
 bot.permissions = {"owner": [], "admins": [], "developers": [], "banned_servers": [], "banned_users": []}
 bot.save_permissions = lambda: None
@@ -143,38 +154,32 @@ async def on_command_error(ctx: commands.Context, error: commands.CommandError):
         pass
 
 
-async def global_slash_check(interaction):
+async def global_slash_check(interaction: discord.Interaction) -> bool:
+    permissions = getattr(interaction.client, "permissions", {})
     guild = interaction.guild
-    cmd_name = interaction.command.name if interaction.command else None
+    data = interaction.data if isinstance(interaction.data, dict) else {}
+    cmd_name = data.get("name")
 
-    if guild and guild.id in bot.permissions.get("banned_servers", []):
-        if cmd_name not in ["help"]:
+    if guild and guild.id in permissions.get("banned_servers", []):
+        if cmd_name != "help":
             owner = guild.owner
             if owner:
                 try:
                     embed = discord.Embed(title="Server gesperrt", description=f"Dein Server {guild.name} ist gesperrt. Commands sind deaktiviert außer help.", color=discord.Color.red())
                     await owner.send(embed=embed)
-                except:
+                except Exception:
                     pass
             raise app_commands.CheckFailure("Server gesperrt")
 
-    if interaction.user.id in bot.permissions.get("banned_users", []):
-        if cmd_name not in ["help"]:
+    if interaction.user.id in permissions.get("banned_users", []):
+        if cmd_name != "help":
             try:
                 embed = discord.Embed(title="User gesperrt", description="Du bist gesperrt. Commands sind deaktiviert außer help.", color=discord.Color.red())
                 await interaction.user.send(embed=embed)
-            except:
+            except Exception:
                 pass
             raise app_commands.CheckFailure("User gesperrt")
     return True
-
-
-if hasattr(bot.tree, "interaction_check"):
-    bot.tree.interaction_check(global_slash_check)
-elif hasattr(bot.tree, "check"):
-    bot.tree.check(global_slash_check)
-else:
-    print("WARNUNG: bot.tree hat weder interaction_check noch check. Globale Slash-Checks werden nicht angewendet.")
 
 
 async def load_cogs() -> None:

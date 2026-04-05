@@ -1,14 +1,10 @@
 import discord
 from discord.ext import commands
+from checks import is_developer
 
 class SyncFix(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-
-    def is_developer(self):
-        async def predicate(ctx):
-            return ctx.author.id in self.bot.permissions.get("developers", [])
-        return commands.check(predicate)
 
     @commands.hybrid_command(name="fixsync", description="Synchronisiert und bereinigt lokale Slash-Befehle.")
     @is_developer()
