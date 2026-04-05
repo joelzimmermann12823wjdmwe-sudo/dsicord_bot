@@ -58,16 +58,16 @@ class Warn(commands.Cog):
                     f"**{index}.** {warn['reason']} — {moderator_text} ({timestamp} UTC)"
                 )
 
-        description = "\n".join(lines)
-        if len(description) > 4000:
-            description = description[:3990] + "…"
+            description = "\n".join(lines)
+            if len(description) > 4000:
+                description = description[:3990] + "…"
 
-        embed = create_embed(
-            title=f"🔎 Verwarnungen von {member.display_name}",
-            description=description,
-            footer=f"Warns gesamt: {len(warn_list)}",
-        )
-        await ctx.send(embed=embed)
+            embed = create_embed(
+                title=f"🔎 Verwarnungen von {member.display_name}",
+                description=description,
+                footer=f"Warns gesamt: {len(warn_list)}",
+            )
+            await ctx.send(embed=embed)
         except Exception as e:
             embed = create_embed(
                 title="❌ Fehler",
