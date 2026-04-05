@@ -23,11 +23,9 @@ INTENTS.members = True
 INTENTS.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=INTENTS, help_command=None, activity=discord.Game(name="/help | !help"))
-bot.storage = Storage()
-
-# Lade Permissions von Supabase
-bot.permissions = bot.storage.get_permissions()
-bot.save_permissions = lambda: bot.storage.save_permissions(bot.permissions)
+bot.storage = None
+bot.permissions = {"owner": [], "admins": [], "developers": [], "banned_servers": [], "banned_users": []}
+bot.save_permissions = lambda: None
 
 
 class HealthHandler(BaseHTTPRequestHandler):
@@ -80,6 +78,8 @@ async def on_ready() -> None:
 async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
     if isinstance(error, app_commands.MissingPermissions):
         message = "❌ Du hast nicht die nötigen Berechtigungen für diesen Befehl."
+    elif isinstance(error, app_commands.CheckFailure):
+        message = "❌ Du kannst diesen Befehl nicht benutzen."
     else:
         message = "⚠️ Es ist ein Fehler aufgetreten. Bitte versuche es später erneut."
 
@@ -121,7 +121,28 @@ async def global_check(ctx):
     return True
 
 
-@bot.tree.interaction_check
+@bot.event
+async def on_command_error(ctx: commands.Context, error: commands.CommandError):
+    if isinstance(error, commands.CommandNotFound):
+        return
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send("❌ Du hast nicht die nötigen Berechtigungen für diesen Befehl.")
+        return
+    if isinstance(error, commands.CheckFailure):
+        await ctx.send("❌ Du kannst diesen Befehl nicht benutzen.")
+        return
+    if isinstance(error, commands.UserInputError):
+        await ctx.send(f"❌ Eingabefehler: {str(error)}")
+        return
+
+    print("Command-Fehler:", file=sys.stderr)
+    traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
+    try:
+        await ctx.send("⚠️ Es ist ein Fehler aufgetreten. Bitte versuche es später erneut.")
+    except Exception:
+        pass
+
+
 async def global_slash_check(interaction):
     guild = interaction.guild
     cmd_name = interaction.command.name if interaction.command else None
@@ -135,7 +156,7 @@ async def global_slash_check(interaction):
                     await owner.send(embed=embed)
                 except:
                     pass
-            return False
+            raise app_commands.CheckFailure("Server gesperrt")
 
     if interaction.user.id in bot.permissions.get("banned_users", []):
         if cmd_name not in ["help"]:
@@ -144,8 +165,16 @@ async def global_slash_check(interaction):
                 await interaction.user.send(embed=embed)
             except:
                 pass
-            return False
+            raise app_commands.CheckFailure("User gesperrt")
     return True
+
+
+if hasattr(bot.tree, "interaction_check"):
+    bot.tree.interaction_check(global_slash_check)
+elif hasattr(bot.tree, "check"):
+    bot.tree.check(global_slash_check)
+else:
+    print("WARNUNG: bot.tree hat weder interaction_check noch check. Globale Slash-Checks werden nicht angewendet.")
 
 
 async def load_cogs() -> None:
@@ -173,7 +202,11 @@ async def main() -> None:
     # Lade .env Datei
     load_dotenv(BASE_DIR / ".env")
     load_env(BASE_DIR / ".env")
-    
+
+    bot.storage = Storage()
+    bot.permissions = bot.storage.get_permissions()
+    bot.save_permissions = lambda: bot.storage.save_permissions(bot.permissions)
+
     token = os.getenv("DISCORD_TOKEN") or os.getenv("TOKEN")
     if not token:
         raise RuntimeError(
