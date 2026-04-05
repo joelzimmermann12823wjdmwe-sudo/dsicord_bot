@@ -109,14 +109,16 @@ class Storage:
 
     # ===== PERMISSIONS =====
     def get_permissions(self) -> Dict[str, Any]:
+        local_permissions = self._read_local_permissions()
         row = self._safe_request(
             "GET",
             self._build_url("config"),
             params={"select": "data", "key": "eq.permissions"},
         )
         if row and isinstance(row, list) and row:
-            return row[0].get("data", self._default_permissions())
-        return self._read_local_permissions()
+            remote_permissions = self._normalize_permissions(row[0].get("data"))
+            return self._merge_permissions(local_permissions, remote_permissions)
+        return local_permissions
 
     def save_permissions(self, permissions: Dict[str, Any]) -> None:
         normalized = self._normalize_permissions(permissions)
@@ -162,4 +164,12 @@ class Storage:
                 value = permissions.get(key, [])
                 data[key] = value if isinstance(value, list) else []
         return data
+
+    def _merge_permissions(self, local_permissions: Dict[str, Any], remote_permissions: Dict[str, Any]) -> Dict[str, Any]:
+        merged = self._default_permissions()
+        for key in merged:
+            local_values = local_permissions.get(key, [])
+            remote_values = remote_permissions.get(key, [])
+            merged[key] = list(dict.fromkeys([*local_values, *remote_values]))
+        return merged
 

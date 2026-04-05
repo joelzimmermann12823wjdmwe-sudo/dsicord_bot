@@ -39,6 +39,10 @@ bot.permissions = {"owner": [], "admins": [], "developers": [], "banned_servers"
 bot.save_permissions = lambda: None
 
 
+def is_internal_owner(user_id: int) -> bool:
+    return user_id in bot.permissions.get("owner", [])
+
+
 class HealthHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -62,7 +66,7 @@ def load_env(path: Path) -> None:
     if not path.exists():
         return
 
-    with path.open("r", encoding="utf-8") as env_file:
+    with path.open("r", encoding="utf-8-sig") as env_file:
         for line in env_file:
             line = line.strip()
             if not line or line.startswith("#"):
@@ -90,7 +94,7 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
     if isinstance(error, app_commands.MissingPermissions):
         message = "❌ Du hast nicht die nötigen Berechtigungen für diesen Befehl."
     elif isinstance(error, app_commands.CheckFailure):
-        message = "❌ Du kannst diesen Befehl nicht benutzen."
+        message = f"❌ {error}" if str(error) else "❌ Du kannst diesen Befehl nicht benutzen."
     else:
         message = "⚠️ Es ist ein Fehler aufgetreten. Bitte versuche es später erneut."
 
@@ -108,6 +112,9 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
 
 @bot.check
 async def global_check(ctx):
+    if is_internal_owner(ctx.author.id):
+        return True
+
     # Check banned servers
     if ctx.guild and ctx.guild.id in bot.permissions.get("banned_servers", []):
         if ctx.command and ctx.command.name not in ["help"]:
@@ -140,7 +147,8 @@ async def on_command_error(ctx: commands.Context, error: commands.CommandError):
         await ctx.send("❌ Du hast nicht die nötigen Berechtigungen für diesen Befehl.")
         return
     if isinstance(error, commands.CheckFailure):
-        await ctx.send("❌ Du kannst diesen Befehl nicht benutzen.")
+        message = f"❌ {error}" if str(error) else "❌ Du kannst diesen Befehl nicht benutzen."
+        await ctx.send(message)
         return
     if isinstance(error, commands.UserInputError):
         await ctx.send(f"❌ Eingabefehler: {str(error)}")
@@ -156,6 +164,9 @@ async def on_command_error(ctx: commands.Context, error: commands.CommandError):
 
 async def global_slash_check(interaction: discord.Interaction) -> bool:
     permissions = getattr(interaction.client, "permissions", {})
+    if interaction.user.id in permissions.get("owner", []):
+        return True
+
     guild = interaction.guild
     data = interaction.data if isinstance(interaction.data, dict) else {}
     cmd_name = data.get("name")
