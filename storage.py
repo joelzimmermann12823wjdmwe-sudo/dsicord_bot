@@ -1,4 +1,6 @@
 import os
+import json
+from pathlib import Path
 from datetime import datetime
 from typing import Any, Dict, List
 
@@ -9,6 +11,8 @@ class Storage:
     """Supabase-Storage über REST, kompatibel mit Python 3.14."""
 
     def __init__(self):
+        self.base_dir = Path(__file__).parent
+        self.permissions_file = self.base_dir / "permissions.json"
         self._refresh_config()
 
     def _refresh_config(self) -> None:
@@ -112,15 +116,17 @@ class Storage:
         )
         if row and isinstance(row, list) and row:
             return row[0].get("data", self._default_permissions())
-        return self._default_permissions()
+        return self._read_local_permissions()
 
     def save_permissions(self, permissions: Dict[str, Any]) -> None:
+        normalized = self._normalize_permissions(permissions)
+        self._write_local_permissions(normalized)
         existing = self._safe_request(
             "GET",
             self._build_url("config"),
             params={"select": "id", "key": "eq.permissions"},
         )
-        payload = {"key": "permissions", "data": permissions}
+        payload = {"key": "permissions", "data": normalized}
         if existing:
             self._safe_request("PATCH", self._build_url("config"), params={"key": "eq.permissions"}, data=payload)
         else:
@@ -129,4 +135,31 @@ class Storage:
     @staticmethod
     def _default_permissions() -> Dict[str, Any]:
         return {"owner": [], "admins": [], "developers": [], "banned_servers": [], "banned_users": []}
+
+    def _read_local_permissions(self) -> Dict[str, Any]:
+        if not self.permissions_file.exists():
+            return self._default_permissions()
+        try:
+            with self.permissions_file.open("r", encoding="utf-8") as file:
+                data = json.load(file)
+            return self._normalize_permissions(data)
+        except (OSError, json.JSONDecodeError) as exc:
+            print(f"WARNUNG: Konnte lokale permissions.json nicht lesen: {exc}")
+            return self._default_permissions()
+
+    def _write_local_permissions(self, permissions: Dict[str, Any]) -> None:
+        try:
+            with self.permissions_file.open("w", encoding="utf-8") as file:
+                json.dump(permissions, file, ensure_ascii=True, indent=4)
+                file.write("\n")
+        except OSError as exc:
+            print(f"WARNUNG: Konnte lokale permissions.json nicht schreiben: {exc}")
+
+    def _normalize_permissions(self, permissions: Dict[str, Any] | None) -> Dict[str, Any]:
+        data = self._default_permissions()
+        if isinstance(permissions, dict):
+            for key in data:
+                value = permissions.get(key, [])
+                data[key] = value if isinstance(value, list) else []
+        return data
 
