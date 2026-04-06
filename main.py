@@ -74,6 +74,13 @@ def start_health_server() -> None:
     print(f"Health server listening on port {port}")
 
 
+def print_startup_diagnostics() -> None:
+    print("Startup-Diagnose:", file=sys.stderr)
+    for key in ("DISCORD_TOKEN", "TOKEN", "SUPABASE_URL", "SUPABASE_SERVICE_KEY", "SUPABASE_ANON_KEY", "PORT"):
+        status = "gesetzt" if os.getenv(key) else "fehlt"
+        print(f"  {key}: {status}", file=sys.stderr)
+
+
 def load_env(path: Path) -> None:
     if not path.exists():
         return
@@ -237,15 +244,16 @@ async def main() -> None:
     load_dotenv(BASE_DIR / ".env")
     load_env(BASE_DIR / ".env")
 
+    token = (os.getenv("DISCORD_TOKEN") or os.getenv("TOKEN") or "").strip()
+    if not token:
+        raise RuntimeError(
+            "Kein Discord-Token gefunden. Setze DISCORD_TOKEN oder TOKEN lokal in .env "
+            "und auf Render unter Environment."
+        )
+
     bot.storage = Storage()
     bot.permissions = bot.storage.get_permissions()
     bot.save_permissions = lambda: bot.storage.save_permissions(bot.permissions)
-
-    token = os.getenv("DISCORD_TOKEN") or os.getenv("TOKEN")
-    if not token:
-        raise RuntimeError(
-            "Kein Discord-Token gefunden. Bitte lege DISCORD_TOKEN oder TOKEN in der .env-Datei an."
-        )
 
     start_health_server()
     await load_cogs()
@@ -255,4 +263,10 @@ async def main() -> None:
 if __name__ == "__main__":
     import asyncio
 
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except Exception as exc:
+        print(f"Fataler Startfehler: {exc}", file=sys.stderr)
+        print_startup_diagnostics()
+        traceback.print_exception(type(exc), exc, exc.__traceback__, file=sys.stderr)
+        sys.exit(1)
