@@ -75,3 +75,7 @@ class Warn(commands.Cog):
                 footer="Versuche es später erneut",
             )
             await ctx.send(embed=embed)
+
+
+async def setup(bot):
+    await bot.add_cog(Warn(bot))

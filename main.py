@@ -35,12 +35,24 @@ bot = commands.Bot(
     tree_cls=BotCommandTree,
 )
 bot.storage = None
+bot.db = None
 bot.permissions = {"owner": [], "admins": [], "developers": [], "banned_servers": [], "banned_users": []}
 bot.save_permissions = lambda: None
 
 
 def is_internal_owner(user_id: int) -> bool:
     return user_id in bot.permissions.get("owner", [])
+
+
+async def ensure_interaction_response(ctx: commands.Context) -> None:
+    interaction = getattr(ctx, "interaction", None)
+    if interaction is None or interaction.response.is_done():
+        return
+
+    try:
+        await ctx.defer()
+    except (discord.HTTPException, discord.InteractionResponded):
+        pass
 
 
 class HealthHandler(BaseHTTPRequestHandler):
@@ -88,6 +100,11 @@ async def on_ready() -> None:
         print(f"{len(synced)} Slash-Befehle synchronisiert.")
     except Exception as exc:
         print("Fehler beim Synchronisieren der Slash-Befehle:", exc, file=sys.stderr)
+
+
+@bot.before_invoke
+async def auto_defer_hybrid_commands(ctx: commands.Context) -> None:
+    await ensure_interaction_response(ctx)
 
 @bot.tree.error
 async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
@@ -203,6 +220,7 @@ async def load_cogs() -> None:
             module = import_module(module_name)
             setup = getattr(module, "setup", None)
             if setup is None:
+                print(f"Cog übersprungen: {module_name} (keine setup-Funktion gefunden)", file=sys.stderr)
                 continue
 
             result = setup(bot)
