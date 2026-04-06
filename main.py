@@ -4,6 +4,8 @@ import os
 import sys
 import threading
 import traceback
+from datetime import datetime, timedelta
+from email.utils import parsedate_to_datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from importlib import import_module
 from pathlib import Path
@@ -25,6 +27,10 @@ INTENTS.message_content = True
 
 class BotCommandTree(app_commands.CommandTree):
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        data = interaction.data if isinstance(interaction.data, dict) else {}
+        command_name = data.get("name", "<unbekannt>")
+        user = interaction.user
+        print(f"Slash-Command empfangen: /{command_name} von {user} ({user.id})")
         return await global_slash_check(interaction)
 
 
@@ -40,6 +46,8 @@ bot.db = None
 bot.permissions = {"owner": [], "admins": [], "developers": [], "banned_servers": [], "banned_users": []}
 bot.save_permissions = lambda: None
 bot.has_synced_commands = False
+bot.has_checked_application_config = False
+bot.has_warned_about_message_content = False
 
 
 def is_internal_owner(user_id: int) -> bool:
@@ -53,8 +61,15 @@ async def ensure_interaction_response(ctx: commands.Context) -> None:
 
     try:
         await ctx.defer()
-    except (discord.HTTPException, discord.InteractionResponded):
-        pass
+    except discord.InteractionResponded:
+        return
+    except discord.HTTPException as exc:
+        command_name = getattr(ctx.command, "qualified_name", "<unbekannt>")
+        print(
+            f"Interaction-Defer fehlgeschlagen fuer {command_name}: "
+            f"HTTP {exc.status} / Code {exc.code} / {exc.text}",
+            file=sys.stderr,
+        )
 
 
 class HealthHandler(BaseHTTPRequestHandler):
@@ -104,6 +119,25 @@ def load_env(path: Path) -> None:
 @bot.event
 async def on_ready() -> None:
     print(f"Bot ist online als {bot.user} ({bot.user.id})")
+
+    if not bot.has_checked_application_config:
+        try:
+            app_info = await bot.application_info()
+            endpoint_url = getattr(app_info, "interactions_endpoint_url", None)
+            if endpoint_url:
+                print(
+                    "WARNUNG: In den Discord Developer Portal Settings ist eine "
+                    f"Interactions Endpoint URL gesetzt: {endpoint_url}. "
+                    "Dann kommen Slash-Commands nicht ueber den Gateway bei discord.py an.",
+                    file=sys.stderr,
+                )
+            else:
+                print("Interactions werden ueber den Gateway empfangen.")
+        except Exception as exc:
+            print(f"Anwendungs-Konfiguration konnte nicht geprueft werden: {exc}", file=sys.stderr)
+        finally:
+            bot.has_checked_application_config = True
+
     if bot.has_synced_commands:
         return
 
@@ -117,7 +151,27 @@ async def on_ready() -> None:
 
 @bot.before_invoke
 async def auto_defer_hybrid_commands(ctx: commands.Context) -> None:
+    print(f"Command wird ausgefuehrt: {ctx.command} von {ctx.author} ({ctx.author.id})")
     await ensure_interaction_response(ctx)
+
+
+@bot.event
+async def on_message(message: discord.Message) -> None:
+    if message.author.bot:
+        return
+
+    if message.guild and not message.content and not bot.has_warned_about_message_content:
+        print(
+            "WARNUNG: Guild-Nachricht ohne Inhalt empfangen. "
+            "Message Content Intent ist im Discord Developer Portal wahrscheinlich nicht aktiviert.",
+            file=sys.stderr,
+        )
+        bot.has_warned_about_message_content = True
+
+    if message.content.startswith("!"):
+        print(f"Prefix-Command empfangen: {message.content.split()[0]} von {message.author} ({message.author.id})")
+
+    await bot.process_commands(message)
 
 @bot.tree.error
 async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
@@ -245,6 +299,20 @@ async def load_cogs() -> None:
             print(f"Fehler beim Laden von {module_name}: {exc}", file=sys.stderr)
 
 
+def format_retry_delay(seconds: int) -> str:
+    minutes, secs = divmod(seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+
+    parts = []
+    if hours:
+        parts.append(f"{hours}h")
+    if minutes:
+        parts.append(f"{minutes}m")
+    if secs or not parts:
+        parts.append(f"{secs}s")
+    return " ".join(parts)
+
+
 def get_discord_retry_delay(error: discord.HTTPException, attempt: int) -> int:
     headers = getattr(error.response, "headers", {}) or {}
     retry_after = headers.get("Retry-After")
@@ -252,7 +320,23 @@ def get_discord_retry_delay(error: discord.HTTPException, attempt: int) -> int:
         try:
             return max(1, int(float(retry_after)))
         except (TypeError, ValueError):
-            pass
+            try:
+                retry_at = parsedate_to_datetime(str(retry_after))
+                now = datetime.now(retry_at.tzinfo)
+                return max(1, int((retry_at - now).total_seconds()))
+            except (TypeError, ValueError, OverflowError):
+                pass
+
+    response_data = getattr(error, "response", None)
+    if response_data is not None:
+        text = getattr(response_data, "text", None)
+        if isinstance(text, str) and '"retry_after"' in text:
+            marker = '"retry_after":'
+            try:
+                value = text.split(marker, 1)[1].split(",", 1)[0].split("}", 1)[0].strip()
+                return max(1, int(float(value)))
+            except (IndexError, TypeError, ValueError):
+                pass
 
     backoff_steps = (60, 120, 300, 600, 900)
     return backoff_steps[min(attempt, len(backoff_steps) - 1)]
@@ -260,7 +344,10 @@ def get_discord_retry_delay(error: discord.HTTPException, attempt: int) -> int:
 
 async def reset_bot_after_login_failure() -> None:
     try:
-        await bot.close()
+        # Nach einem 429 beim statischen Login existiert noch keine aktive
+        # Gateway-Verbindung. Ein volles bot.close() setzt den internen
+        # Loop-Zustand auf MISSING und kann den naechsten Startversuch brechen.
+        await bot.http.close()
     except Exception:
         pass
     bot.clear()
@@ -280,9 +367,11 @@ async def start_bot_with_retry(token: str) -> None:
                 raise
 
             delay = get_discord_retry_delay(exc, attempt)
+            retry_time = datetime.now().astimezone() + timedelta(seconds=delay)
             print(
                 "Discord-Login wurde mit HTTP 429 begrenzt. "
-                f"Nächster Versuch in {delay} Sekunden.",
+                f"Nächster Versuch in {delay} Sekunden "
+                f"({format_retry_delay(delay)}) um {retry_time.strftime('%Y-%m-%d %H:%M:%S %Z')}.",
                 file=sys.stderr,
             )
             await reset_bot_after_login_failure()
