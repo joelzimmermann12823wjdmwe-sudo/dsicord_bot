@@ -1,3 +1,4 @@
+import asyncio
 import inspect
 import os
 import sys
@@ -38,6 +39,7 @@ bot.storage = None
 bot.db = None
 bot.permissions = {"owner": [], "admins": [], "developers": [], "banned_servers": [], "banned_users": []}
 bot.save_permissions = lambda: None
+bot.has_synced_commands = False
 
 
 def is_internal_owner(user_id: int) -> bool:
@@ -102,8 +104,12 @@ def load_env(path: Path) -> None:
 @bot.event
 async def on_ready() -> None:
     print(f"Bot ist online als {bot.user} ({bot.user.id})")
+    if bot.has_synced_commands:
+        return
+
     try:
         synced = await bot.tree.sync()
+        bot.has_synced_commands = True
         print(f"{len(synced)} Slash-Befehle synchronisiert.")
     except Exception as exc:
         print("Fehler beim Synchronisieren der Slash-Befehle:", exc, file=sys.stderr)
@@ -239,6 +245,51 @@ async def load_cogs() -> None:
             print(f"Fehler beim Laden von {module_name}: {exc}", file=sys.stderr)
 
 
+def get_discord_retry_delay(error: discord.HTTPException, attempt: int) -> int:
+    headers = getattr(error.response, "headers", {}) or {}
+    retry_after = headers.get("Retry-After")
+    if retry_after:
+        try:
+            return max(1, int(float(retry_after)))
+        except (TypeError, ValueError):
+            pass
+
+    backoff_steps = (60, 120, 300, 600, 900)
+    return backoff_steps[min(attempt, len(backoff_steps) - 1)]
+
+
+async def reset_bot_after_login_failure() -> None:
+    try:
+        await bot.close()
+    except Exception:
+        pass
+    bot.clear()
+
+
+async def start_bot_with_retry(token: str) -> None:
+    attempt = 0
+
+    while True:
+        try:
+            await bot.start(token)
+            return
+        except discord.LoginFailure:
+            raise
+        except discord.HTTPException as exc:
+            if exc.status != 429:
+                raise
+
+            delay = get_discord_retry_delay(exc, attempt)
+            print(
+                "Discord-Login wurde mit HTTP 429 begrenzt. "
+                f"Nächster Versuch in {delay} Sekunden.",
+                file=sys.stderr,
+            )
+            await reset_bot_after_login_failure()
+            await asyncio.sleep(delay)
+            attempt += 1
+
+
 async def main() -> None:
     # Lade .env Datei
     load_dotenv(BASE_DIR / ".env")
@@ -257,12 +308,10 @@ async def main() -> None:
 
     start_health_server()
     await load_cogs()
-    await bot.start(token)
+    await start_bot_with_retry(token)
 
 
 if __name__ == "__main__":
-    import asyncio
-
     try:
         asyncio.run(main())
     except Exception as exc:
