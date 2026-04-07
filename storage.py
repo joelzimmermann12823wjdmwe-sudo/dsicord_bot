@@ -44,6 +44,36 @@ class Storage:
             print(f"Supabase request failed: {method} {url} -> {exc}")
             return None
 
+    def healthcheck(self) -> Dict[str, Any]:
+        self._refresh_config()
+        result: Dict[str, Any] = {
+            "configured": bool(self.supabase_url and self.supabase_key),
+            "ok": False,
+            "table": "config",
+            "url": self.supabase_url,
+        }
+
+        if not result["configured"]:
+            result["error"] = "Supabase-Konfiguration fehlt"
+            return result
+
+        try:
+            response = requests.get(
+                self._build_url("config"),
+                headers=self.headers,
+                params={"select": "key", "limit": 1},
+                timeout=10,
+            )
+            result["status_code"] = response.status_code
+            response.raise_for_status()
+            rows = response.json() if response.text else []
+            result["ok"] = True
+            result["rows_returned"] = len(rows) if isinstance(rows, list) else 0
+            return result
+        except requests.RequestException as exc:
+            result["error"] = str(exc)
+            return result
+
     # ===== WARNs =====
     def add_warn(self, guild_id: int, member_id: int, moderator_id: int, reason: str) -> int:
         payload = {
