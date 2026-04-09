@@ -69,7 +69,7 @@ class Help(commands.Cog):
     @commands.hybrid_command(name="dbcheck", description="Testet die Datenbank-Verbindung.")
     async def dbcheck(self, ctx: commands.Context):
         try:
-            perms = self.bot.storage.get_permissions()
+            perms = await self.bot.run_storage_call("get_permissions")
             embed = create_embed(
                 title="🗄️ Datenbank-Check",
                 description="✅ Verbindung erfolgreich!",

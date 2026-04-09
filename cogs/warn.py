@@ -11,7 +11,8 @@ class Warn(commands.Cog):
     async def warn(self, ctx: commands.Context, member: discord.Member, *, reason: str = "keine Angabe"):
         try:
             reason_text = reason or "keine Angabe"
-            warn_count = self.bot.storage.add_warn(
+            warn_count = await self.bot.run_storage_call(
+                "add_warn",
                 ctx.guild.id,
                 member.id,
                 ctx.author.id,
@@ -40,7 +41,7 @@ class Warn(commands.Cog):
     async def warns(self, ctx: commands.Context, member: discord.Member = None):
         try:
             member = member or ctx.author
-            warn_list = self.bot.storage.get_warns(ctx.guild.id, member.id)
+            warn_list = await self.bot.run_storage_call("get_warns", ctx.guild.id, member.id)
             if not warn_list:
                 embed = create_embed(
                     title="🔎 Verwarnungen",

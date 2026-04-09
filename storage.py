@@ -13,6 +13,8 @@ class Storage:
     def __init__(self):
         self.base_dir = Path(__file__).parent
         self.permissions_file = self.base_dir / "permissions.json"
+        self.session = requests.Session()
+        self._warned_missing_key = False
         self._refresh_config()
 
     def _refresh_config(self) -> None:
@@ -24,8 +26,9 @@ class Storage:
             "Content-Type": "application/json",
             "Prefer": "return=minimal",
         }
-        if not self.supabase_key:
+        if not self.supabase_key and not self._warned_missing_key:
             print("WARNUNG: Kein Supabase API-Schlüssel gefunden. Setze SUPABASE_SERVICE_KEY oder SUPABASE_ANON_KEY.")
+            self._warned_missing_key = True
 
     def _build_url(self, table: str) -> str:
         return f"{self.supabase_url}/rest/v1/{table}"
@@ -33,7 +36,7 @@ class Storage:
     def _safe_request(self, method: str, url: str, params=None, data=None) -> Any:
         self._refresh_config()
         try:
-            response = requests.request(method, url, headers=self.headers, params=params, json=data, timeout=10)
+            response = self.session.request(method, url, headers=self.headers, params=params, json=data, timeout=(3.05, 8))
             response.raise_for_status()
             if response.status_code in (204, 205):
                 return None
@@ -58,11 +61,11 @@ class Storage:
             return result
 
         try:
-            response = requests.get(
+            response = self.session.get(
                 self._build_url("config"),
                 headers=self.headers,
                 params={"select": "key", "limit": 1},
-                timeout=10,
+                timeout=(3.05, 6),
             )
             result["status_code"] = response.status_code
             response.raise_for_status()

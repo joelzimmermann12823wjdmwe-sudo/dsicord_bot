@@ -12,10 +12,10 @@ class SyncFix(commands.Cog):
         """Löscht alle lokalen Server-Befehle, um Dopplungen zu vermeiden."""
         # 1. Löscht alle Befehle, die NUR für diesen Server registriert sind
         self.bot.tree.clear_commands(guild=ctx.guild)
-        await self.bot.tree.sync(guild=ctx.guild)
+        await self.bot.run_api_call("tree.sync.guild", lambda: self.bot.tree.sync(guild=ctx.guild), retries=2)
         
         # 2. Synchronisiert die globalen Befehle neu
-        await self.bot.tree.sync()
+        await self.bot.run_api_call("tree.sync.global", lambda: self.bot.tree.sync(), retries=2)
         
         await ctx.send("✅ Server-Sync bereinigt! Starte dein Discord ggf. neu (STRG+R), damit die alten Befehle verschwinden.")
 
